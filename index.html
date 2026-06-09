@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI旅游路线规划设计师 · TravelMind</title>
+<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://webapi.amap.com/maps?v=2.0&key=ee15ad5ed2ed7cd9c78c79b6d6fd3f4f"></script>
+<script src="./data.js"></script>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; }
+  .bg-gradient-hero { background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0c4a6e 100%); }
+  .glow-card { box-shadow: 0 8px 32px rgba(0,0,0,.12), 0 2px 8px rgba(0,0,0,.06); transition: all .3s ease; }
+  .glow-card:hover { transform: translateY(-4px); box-shadow: 0 16px 48px rgba(0,0,0,.18), 0 4px 12px rgba(0,0,0,.1); }
+  .typing-cursor::after { content: '▎'; animation: blink 1s infinite; color: #60a5fa; }
+  @keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
+  .fade-in { animation: fadeIn .5s ease-out; }
+  @keyframes fadeIn { from {opacity:0;transform:translateY(12px)} to {opacity:1;transform:translateY(0)} }
+  .slide-in { animation: slideIn .4s ease-out; }
+  @keyframes slideIn { from {opacity:0;transform:translateX(-20px)} to {opacity:1;transform:translateX(0)} }
+  /* flipbook 翻页效果 */
+  .flipbook-stage { perspective: 2400px; }
+  .flipbook-page {
+    transform-style: preserve-3d;
+    transition: transform .9s cubic-bezier(.34,.06,.27,.99);
+    transform-origin: left center;
+    backface-visibility: hidden;
+  }
+  .flipbook-page.flipped { transform: rotateY(-180deg); }
+  .page-shadow { box-shadow: 8px 0 24px -8px rgba(0,0,0,.4), inset -16px 0 32px -24px rgba(0,0,0,.3); }
+  /* 滚动条 */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: #f1f5f9; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  /* 地图容器 */
+  .amap-container { width:100%; height:100%; border-radius: 12px; overflow:hidden; }
+  /* 星级 */
+  .star { color:#fbbf24; }
+  .star-empty { color:#e5e7eb; }
+  /* 路线卡片渐变 */
+  .route-classic { background: linear-gradient(135deg, #fef3c7, #fde68a); }
+  .route-niche { background: linear-gradient(135deg, #d1fae5, #a7f3d0); }
+  .route-culture { background: linear-gradient(135deg, #fee2e2, #fecaca); }
+  .route-nature { background: linear-gradient(135deg, #dbeafe, #bfdbfe); }
+</style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+<div id="root"></div>
+
+<script type="text/babel" data-presets="env,react">
+const { useState, useEffect, useRef, useMemo, useCallback } = React;
+
+/* ============ 工具函数 ============ */
+const fmt = n => Number(n).toLocaleString('zh-CN');
+const stars = n => '★'.repeat(n) + '☆'.repeat(5-n);
+
+// 从对话文本提取目的地
+function extractCity(text) {
+  if (!text) return null;
+  const cities = Object.keys(window.CITY_DATABASE);
+  for (const c of cities) {
+    if (text.includes(c)) return c;
+  }
+  // 模糊匹配（含别称/省份关键词）
+  if (text.match(/帝都|北京|京城/)) return '北京';
+  if (text.match(/魔都|沪|上海|申城/)) return '上海';
+  if (text.match(/蓉|成都|天府|川A|四川/)) return '成都';
+  if (text.match(/杭州|杭城|临安|西湖|浙江|钱塘/)) return '杭州';
+  if (text.match(/西安|长安|古都|陕西/)) return '西安';
+  // 新增 7 城市
+  if (text.match(/太原|平遥|大同|云冈|晋祠|山西|三晋/)) return '太原';
+  if (text.match(/广州|羊城|花城|穗|岭南|广东|珠三角/)) return '广州';
+  if (text.match(/南京|金陵|建康|秣陵|江宁|石头城/)) return '南京';
+  if (text.match(/苏州|姑苏|吴中|平江|拙政|江南水乡|江苏/)) return '苏州';
+  if (text.match(/青岛|崂山|泰山|曲阜|济南|山东|齐鲁|蓬莱/)) return '青岛';
+  if (text.match(/厦门|鹭岛|鼓浪屿|土楼|武夷|泉州|福建|闽/)) return '厦门';
+  if (text.match(/昆明|春城|大理|丽江|香格里拉|云南|滇|彩云之南|玉龙雪山|洱海/)) return '昆明';
+  return null;
+}
+
+// 模拟AI生成详情扩展
+function aiEnrich(spot) {
+  // 这里可替换为真实大模型API调用，本期使用预设逻辑
+  return {
+    bestTime: spot.duration > 4 ? '建议早7:30入园避开人流' : '上午或傍晚光线最佳',
+    avoidTime: '法定节假日10:00-15:00人流高峰',
+    aiTip: `根据近30天3万+游客评价，${spot.name}的核心体验时长约${spot.duration}小时。`
+  };
+}
+
+// 是否中国大陆景点(默认true，第一期只做中国)
+const isMainlandChina = (city) => true;
+
+// 计算路线总耗时和距离（粗略估算）
+function calcRouteCost(prefs, route, city) {
+  const { budget, companions, transport, preference } = prefs;
+  const days = route.days;
+  const trans = window.CITY_DATABASE[city].transport;
+
+  // 票价合计
+  let ticketCost = 0;
+  const allSpots = [
+    ...window.CITY_DATABASE[city].attractions.mustSee,
+    ...window.CITY_DATABASE[city].attractions.secondary,
+    ...window.CITY_DATABASE[city].attractions.hidden
+  ];
+  route.spots.forEach(name => {
+    const sp = allSpots.find(s => s.name === name || name.includes(s.name));
+    if (sp) ticketCost += sp.ticket || 0;
+  });
+
+  // 出行成本
+  const transportDaily = transport === 'rentcar' ? (350 + trans.driving.tollPerDay + trans.driving.fuelPer100km*1.5 + trans.driving.parking)
+                        : transport === 'owncar' ? (trans.driving.tollPerDay + trans.driving.fuelPer100km*1.5 + trans.driving.parking)
+                        : trans.publicTransit.metroDailyCost + trans.publicTransit.taxiAvg*2;
+  const transportTotal = transportDaily * days;
+
+  // 餐饮（按人数和年龄结构调整）
+  const mealMultiplier = companions === 'both' ? 1.4 : (companions === 'kids' || companions === 'elder' ? 1.2 : 1);
+  const mealDaily = 200 * mealMultiplier;
+  const mealTotal = mealDaily * days;
+
+  // 住宿（按预算自动定档）
+  const hotelTier = budget < 3000 ? 'budget' : budget < 6000 ? 'mid' : 'luxury';
+  const hotelData = window.CITY_DATABASE[city].accommodation[hotelTier][0];
+  const hotelTotal = hotelData.price * (days - 1);
+
+  // 往返机票（按城市距离粗估）
+  const flightCost = 1200;
+
+  // 购物预算
+  const shopping = Math.max(500, budget * 0.1);
+
+  return {
+    flight: flightCost,
+    hotel: hotelTotal,
+    food: mealTotal,
+    transport: transportTotal,
+    ticket: ticketCost,
+    shopping,
+    // 购物预留仅作提示，不计入总费用
+    total: flightCost + hotelTotal + mealTotal + transportTotal + ticketCost,
+    hotelTier,
+    hotelDaily: hotelData.price,
+    days
+  };
+}
+
+/* ============ 头部 ============ */
+function Header({ onReset }) {
+  return (
+    <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-3 cursor-pointer" onClick={onReset}>
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-white text-xl">✈️</div>
+          <div>
+            <div className="font-bold text-lg text-slate-800">TravelMind</div>
+            <div className="text-xs text-slate-500">AI旅游路线规划设计师</div>
+          </div>
+        </div>
+        <div className="hidden md:flex items-center gap-6 text-sm text-slate-600">
+          <span>📍 第一期：中国大陆</span>
+          <span>🤖 智能规划引擎</span>
+          <span>🗺️ 一键导入高德</span>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+/* ============ 首页对话框 ============ */
+function HomePage({ onSubmit }) {
+  const [text, setText] = useState('');
+  const placeholder = '我想去xxx地方旅游，请帮我做一个旅游规划';
+
+  const examples = ['我想去北京旅游5天', '帮我规划上海3日游', '成都美食人文路线', '杭州西湖文艺游', '西安兵马俑+古城墙'];
+
+  return (
+    <div className="bg-gradient-hero text-white">
+      <div className="max-w-5xl mx-auto px-6 py-20 text-center">
+        <div className="inline-block mb-6 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur text-sm border border-white/20">
+          ✨ 4类路线 · 一键导入高德 · 完整方案
+        </div>
+        <h1 className="text-5xl md:text-6xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white via-sky-200 to-blue-300">
+          让 AI 为你设计完美旅程
+        </h1>
+        <p className="text-xl text-slate-300 mb-12">告诉我你想去哪里，剩下的交给我</p>
+
+        <div className="bg-white/95 backdrop-blur-xl rounded-2xl p-2 shadow-2xl text-left">
+          <div className="flex items-stretch gap-2">
+            <div className="flex-1 flex items-center px-4 py-2">
+              <span className="text-2xl mr-3">💭</span>
+              <input
+                value={text}
+                onChange={e => setText(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && text.trim() && onSubmit(text)}
+                placeholder={placeholder}
+                className="w-full bg-transparent text-slate-800 text-lg outline-none placeholder-slate-400"
+                autoFocus
+              />
+            </div>
+            <button
+              onClick={() => text.trim() && onSubmit(text)}
+              disabled={!text.trim()}
+              className="px-8 py-3 bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-semibold rounded-xl hover:opacity-90 disabled:opacity-30 transition">
+              开始规划 →
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-6 flex flex-wrap gap-2 justify-center">
+          <span className="text-sm text-slate-400 mr-2">试试：</span>
+          {examples.map(ex => (
+            <button key={ex} onClick={() => onSubmit(ex)} className="text-sm px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 transition">
+              {ex}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 能力展示 */}
+      <div className="bg-white text-slate-800 py-16">
+        <div className="max-w-6xl mx-auto px-6">
+          <h2 className="text-2xl font-bold text-center mb-10">5大核心能力 · 一站式覆盖</h2>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            {[
+              { icon: '🗺️', title: '4类路线推荐', desc: '经典/小众/人文/自然' },
+              { icon: '🏛️', title: '景点深度攻略', desc: '必玩+次要+小众三层' },
+              { icon: '🚗', title: '出行交通规划', desc: '公共交通vs自驾对比' },
+              { icon: '🏨', title: '智能酒店推荐', desc: '高中低三档分级' },
+              { icon: '💰', title: '完整预算表', desc: '6项费用全打通' }
+            ].map((c, i) => (
+              <div key={i} className="p-4 rounded-xl border border-slate-200 hover:border-sky-300 transition glow-card">
+                <div className="text-3xl mb-2">{c.icon}</div>
+                <div className="font-semibold text-sm">{c.title}</div>
+                <div className="text-xs text-slate-500 mt-1">{c.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============ 信息收集 ============ */
+function NumberInput({ cur, next }) {
+  const [val, setVal] = useState('');
+  // 限制最大值防止自动化场景下的累加输入异常（最大 1000 万）
+  const MAX = 10000000;
+  const sanitize = (raw) => {
+    // 仅保留数字
+    const digits = String(raw).replace(/[^\d]/g, '');
+    if (!digits) return '';
+    let n = parseInt(digits, 10);
+    if (Number.isNaN(n)) return '';
+    if (n > MAX) n = MAX;
+    return String(n);
+  };
+  const submit = () => { if (val) next(Number(val)); };
+  return (
+    <div className="flex items-center gap-3">
+      <input type="number" placeholder={cur.placeholder} autoFocus
+        value={val}
+        min={cur.min || 0}
+        max={cur.max || MAX}
+        inputMode="numeric"
+        onChange={e => setVal(sanitize(e.target.value))}
+        onBlur={e => setVal(sanitize(e.target.value))}
+        onKeyDown={e => e.key === 'Enter' && submit()}
+        className="flex-1 px-4 py-3 border-2 border-slate-200 rounded-xl text-lg focus:border-sky-500 outline-none" />
+      <span className="text-slate-500">{cur.suffix}</span>
+      <button onClick={submit} disabled={!val}
+        className="px-6 py-3 bg-sky-500 text-white rounded-xl font-semibold hover:bg-sky-600 disabled:opacity-30">
+        下一步 →
+      </button>
+    </div>
+  );
+}
+
+function InfoCollector({ city, prompt, onComplete }) {
+  const [step, setStep] = useState(0);
+  const [answers, setAnswers] = useState({});
+  const [showCityPicker, setShowCityPicker] = useState(!city);
+  const [pickedCity, setPickedCity] = useState(city);
+
+  const Q = window.PREFERENCE_QUESTIONS;
+  const cur = Q[step];
+
+  if (showCityPicker) {
+    return (
+      <div className="max-w-3xl mx-auto py-12 px-6">
+        <div className="bg-white rounded-2xl p-8 glow-card">
+          <div className="text-sm text-sky-600 mb-2">⏰ 第一期支持城市</div>
+          <h2 className="text-2xl font-bold mb-2">没识别出明确目的地，请选择想去的城市</h2>
+          <p className="text-slate-500 mb-6">你的输入：「{prompt}」</p>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {Object.keys(window.CITY_DATABASE).map(c => (
+              <button key={c} onClick={() => { setPickedCity(c); setShowCityPicker(false); }}
+                className="p-4 rounded-xl border-2 border-slate-200 hover:border-sky-500 hover:bg-sky-50 transition text-left">
+                <div className="font-bold text-lg">{c}</div>
+                <div className="text-xs text-slate-500">{window.CITY_DATABASE[c].bestSeason}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const next = (val) => {
+    const newAns = { ...answers, [cur.id]: val };
+    setAnswers(newAns);
+    if (step + 1 < Q.length) {
+      setStep(step + 1);
+    } else {
+      onComplete(pickedCity, newAns);
+    }
+  };
+
+  return (
+    <div className="max-w-3xl mx-auto py-12 px-6">
+      {/* 进度 */}
+      <div className="flex items-center gap-2 mb-8">
+        {Q.map((q, i) => (
+          <div key={q.id} className={`flex-1 h-1.5 rounded-full ${i <= step ? 'bg-sky-500' : 'bg-slate-200'}`} />
+        ))}
+      </div>
+      <div className="text-sm text-sky-600 mb-2">
+        第 {step+1}/{Q.length} 步 · 目的地：{pickedCity}
+      </div>
+
+      <div className="bg-white rounded-2xl p-8 glow-card slide-in" key={step}>
+        <div className="text-5xl mb-4">{cur.icon}</div>
+        <h2 className="text-2xl font-bold mb-2">{cur.q}</h2>
+        <p className="text-slate-500 mb-6">这将影响AI给你的最终方案</p>
+
+        {cur.type === 'number' && (
+          <NumberInput cur={cur} next={next} />
+        )}
+
+        {cur.type === 'select' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {cur.options.map(opt => (
+              <button key={opt.value} onClick={() => next(opt.value)}
+                className="p-4 text-left rounded-xl border-2 border-slate-200 hover:border-sky-500 hover:bg-sky-50 transition">
+                <div className="font-semibold">{opt.label}</div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {step > 0 && (
+        <button onClick={() => setStep(step-1)} className="mt-4 text-slate-500 hover:text-slate-700">
+          ← 上一步
+        </button>
+      )}
+    </div>
+  );
+}
+
+/* ============ 4类路线推荐 ============ */
+function RouteRecommendation({ city, prefs, onSelect }) {
+  const [active, setActive] = useState(null);
+  const cityData = window.CITY_DATABASE[city];
+  const RT = window.ROUTE_TYPES;
+
+  // 根据偏好默认推荐
+  useEffect(() => {
+    if (prefs.preference === 'hot') setActive('classic');
+    else if (prefs.preference === 'niche') setActive('niche');
+    else setActive('classic');
+  }, [prefs.preference]);
+
+  return (
+    <div className="max-w-7xl mx-auto py-8 px-6">
+      <div className="mb-6">
+        <div className="text-sm text-sky-600">🎯 第二步 · 选择路线类型</div>
+        <h1 className="text-3xl font-bold mt-2">为你推荐 4 类「{city}」精选路线</h1>
+        <p className="text-slate-500 mt-1">根据你的预算 ¥{fmt(prefs.budget)} 和偏好已优化推荐顺序</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        {Object.entries(RT).map(([key, t]) => {
+          const route = cityData.routes[key];
+          const isActive = active === key;
+          return (
+            <button key={key} onClick={() => setActive(key)}
+              className={`p-5 rounded-2xl text-left transition border-2 ${isActive ? 'border-sky-500 ring-4 ring-sky-100 bg-white' : 'border-transparent route-' + key}`}>
+              <div className="text-3xl mb-2">{t.icon}</div>
+              <div className="font-bold text-lg">{t.label}</div>
+              <div className="text-xs text-slate-600 mt-1">{route.tagline}</div>
+              <div className="mt-3 flex items-center justify-between text-xs">
+                <span>📅 {route.days}天</span>
+                <span>📍 {route.spots.length}个景点</span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {active && <RouteDetail city={city} routeKey={active} prefs={prefs} onConfirm={() => onSelect(active)} />}
+    </div>
+  );
+}
+
+/* ============ 路线详情+地图 ============ */
+function RouteDetail({ city, routeKey, prefs, onConfirm }) {
+  const cityData = window.CITY_DATABASE[city];
+  const route = cityData.routes[routeKey];
+  const mapRef = useRef(null);
+  const mapInstance = useRef(null);
+
+  useEffect(() => {
+    if (!window.AMap || !mapRef.current) return;
+    if (mapInstance.current) { mapInstance.current.destroy(); mapInstance.current = null; }
+    const allSpots = [
+      ...cityData.attractions.mustSee,
+      ...cityData.attractions.secondary,
+      ...cityData.attractions.hidden
+    ];
+    const points = route.spots.map(name => {
+      const sp = allSpots.find(s => s.name === name || name.includes(s.name));
+      return sp ? { ...sp } : null;
+    }).filter(Boolean);
+
+    const map = new window.AMap.Map(mapRef.current, {
+      zoom: 11,
+      center: cityData.coord,
+      mapStyle: 'amap://styles/whitesmoke'
+    });
+    mapInstance.current = map;
+
+    points.forEach((p, i) => {
+      new window.AMap.Marker({
+        position: p.coord,
+        map,
+        label: { content: `<div style="background:#0ea5e9;color:#fff;padding:2px 8px;border-radius:8px;font-size:12px">${i+1}.${p.name}</div>`, direction: 'top' }
+      });
+    });
+
+    if (points.length >= 2) {
+      const path = points.map(p => p.coord);
+      new window.AMap.Polyline({ map, path, strokeColor: '#0ea5e9', strokeWeight: 3, strokeStyle: 'dashed' });
+    }
+    map.setFitView();
+  }, [routeKey, city]);
+
+  // 一键导入高德
+  const importToAmap = () => {
+    const allSpots = [
+      ...cityData.attractions.mustSee,
+      ...cityData.attractions.secondary,
+      ...cityData.attractions.hidden
+    ];
+    const first = allSpots.find(s => route.spots.includes(s.name));
+    const last = [...route.spots].reverse().map(n => allSpots.find(s => s.name === n)).find(Boolean);
+    if (!first || !last) return alert('正在准备景点坐标...');
+
+    // 高德路径规划链接（移动端APP和Web均可识别）
+    const url = `https://uri.amap.com/navigation?from=${first.coord[0]},${first.coord[1]},${encodeURIComponent(first.name)}&to=${last.coord[0]},${last.coord[1]},${encodeURIComponent(last.name)}&via=${route.spots.slice(1,-1).map(n => {
+      const s = allSpots.find(x => x.name === n);
+      return s ? `${s.coord[0]},${s.coord[1]},${encodeURIComponent(s.name)}` : '';
+    }).filter(Boolean).join(';')}&mode=car&policy=1&src=travelmind&coordinate=gaode&callnative=1`;
+    window.open(url, '_blank');
+  };
+
+  return (
+    <div className="bg-white rounded-2xl p-6 glow-card fade-in">
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <h2 className="text-2xl font-bold">{route.name}</h2>
+          <p className="text-slate-500 mt-1">{route.tagline}</p>
+        </div>
+        <button onClick={onConfirm} className="px-6 py-2.5 bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-semibold rounded-xl hover:opacity-90">
+          确认这条路线 →
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* 行程概要 */}
+        <div className="space-y-3">
+          {route.dayPlan.map(d => (
+            <div key={d.day} className="border border-slate-200 rounded-xl p-4 hover:border-sky-300 transition">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center font-bold">D{d.day}</div>
+                  <div className="font-semibold">{d.theme}</div>
+                </div>
+                <div className="text-xs text-slate-500">⏱️ 约{d.hours}h</div>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {d.list.map((s, i) => (
+                  <span key={i} className="text-xs px-2 py-1 rounded-md bg-slate-100 text-slate-700">{i+1}. {s}</span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* 地图 */}
+        <div>
+          <div ref={mapRef} className="amap-container border border-slate-200" style={{ height: 480 }}></div>
+          <button onClick={importToAmap} className="mt-3 w-full py-3 bg-gradient-to-r from-emerald-500 to-cyan-600 text-white font-semibold rounded-xl hover:opacity-90 flex items-center justify-center gap-2">
+            <span>🗺️</span>
+            <span>一键导入高德地图导航（中国大陆）</span>
+          </button>
+          <p className="text-xs text-slate-400 mt-2 text-center">非中国大陆景点将自动切换至 Google Maps（第一期暂未开放）</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============ 景点攻略详情 ============ */
+function AttractionsGuide({ city }) {
+  const [tab, setTab] = useState('mustSee');
+  const data = window.CITY_DATABASE[city].attractions;
+  const tabs = [
+    { key: 'mustSee', label: '必玩景点', icon: '⭐', desc: '互联网售票TOP1-5', sub: '每个城市第一到第五售票地点' },
+    { key: 'secondary', label: '次要景点', icon: '🔸', desc: '互联网售票TOP6-10', sub: '第二梯队精选' },
+    { key: 'hidden', label: '小众推荐', icon: '🌟', desc: '近3月热度飙升', sub: '本地人才知道的好地方' }
+  ];
+
+  return (
+    <div className="bg-white rounded-2xl p-6 glow-card mb-6">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-2xl font-bold">📍 {city}核心景点攻略</h2>
+        <div className="text-sm text-slate-500">基于互联网售票数据 + AI热度分析</div>
+      </div>
+
+      <div className="flex gap-2 mb-5 border-b border-slate-200">
+        {tabs.map(t => (
+          <button key={t.key} onClick={() => setTab(t.key)}
+            className={`px-5 py-3 font-semibold transition border-b-2 -mb-px ${tab === t.key ? 'border-sky-500 text-sky-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+            {t.icon} {t.label}
+            <div className="text-xs font-normal mt-0.5">{t.desc}</div>
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {data[tab].map((spot, i) => (
+          <SpotCard key={spot.name} spot={spot} idx={i} kind={tab} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SpotCard({ spot, idx, kind }) {
+  const [expanded, setExpanded] = useState(false);
+  const ai = aiEnrich(spot);
+
+  return (
+    <div className={`border rounded-xl p-4 transition ${expanded ? 'border-sky-400 ring-2 ring-sky-100' : 'border-slate-200 hover:border-slate-300'}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="font-bold text-lg">#{spot.rank} {spot.name}</div>
+            {kind === 'hidden' && <span className="text-xs px-2 py-0.5 bg-rose-100 text-rose-700 rounded">{spot.trend}</span>}
+            {spot.ticket > 0 && <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded">¥{spot.ticket}</span>}
+          </div>
+          <p className="text-sm text-slate-600 mt-2">{spot.intro}</p>
+        </div>
+      </div>
+
+      <div className="mt-3 flex items-center gap-3 text-xs text-slate-500">
+        <span>⏱️ {spot.duration}h</span>
+        <span>💡 {ai.bestTime}</span>
+      </div>
+
+      <button onClick={() => setExpanded(!expanded)} className="mt-3 text-sm text-sky-600 hover:text-sky-700 font-medium">
+        {expanded ? '收起详情 ↑' : '查看打卡点+美食 →'}
+      </button>
+
+      {expanded && (
+        <div className="mt-4 pt-4 border-t border-slate-100 space-y-4 fade-in">
+          <div>
+            <div className="font-semibold text-sm mb-2">📸 主要打卡点 + 推荐姿势</div>
+            <div className="space-y-2">
+              {spot.photoSpots.map((p, i) => (
+                <div key={i} className="p-2 rounded-lg bg-slate-50">
+                  <div className="text-sm font-medium">📍 {p.name}</div>
+                  <div className="text-xs text-slate-600 mt-0.5">{p.pose}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="font-semibold text-sm mb-2">🍜 周边美食推荐</div>
+            <div className="space-y-1.5">
+              {spot.food.map((f, i) => (
+                <div key={i} className="flex items-center gap-2 text-sm">
+                  <span className="star w-20 text-xs">{stars(f.star)}</span>
+                  <span className="font-medium">{f.name}</span>
+                  <span className="text-xs text-slate-500">— {f.desc}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="text-xs text-slate-500 bg-amber-50 p-2 rounded">💡 {spot.tip}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============ 出行攻略 ============ */
+function TransportGuide({ city, prefs, route }) {
+  const trans = window.CITY_DATABASE[city].transport;
+  const days = route.days;
+  const allSpots = [
+    ...window.CITY_DATABASE[city].attractions.mustSee,
+    ...window.CITY_DATABASE[city].attractions.secondary,
+    ...window.CITY_DATABASE[city].attractions.hidden
+  ];
+
+  // 计算景点间间隔（粗略）
+  const segments = [];
+  for (let i = 1; i < route.spots.length; i++) {
+    const a = allSpots.find(s => s.name === route.spots[i-1]);
+    const b = allSpots.find(s => s.name === route.spots[i]);
+    if (a && b) {
+      const dist = Math.sqrt(Math.pow(a.coord[0]-b.coord[0], 2) + Math.pow(a.coord[1]-b.coord[1], 2)) * 111;
+      segments.push({ from: a.name, to: b.name, dist: dist.toFixed(1), drive: Math.ceil(dist/40*60), transit: Math.ceil(dist/25*60) });
+    }
+  }
+
+  // 公共交通预估
+  const publicCost = days * (trans.publicTransit.metroDailyCost + trans.publicTransit.taxiAvg * 2);
+
+  // 自驾(带休息区/孩子老人考虑)
+  const drivingCost = days * (trans.driving.tollPerDay + trans.driving.fuelPer100km * 1.5 + trans.driving.parking);
+  const carRentDaily = 350;
+
+  const hasKids = prefs.companions === 'kids' || prefs.companions === 'both';
+  const hasElder = prefs.companions === 'elder' || prefs.companions === 'both';
+  const useDriving = prefs.transport === 'rentcar' || prefs.transport === 'owncar';
+
+  return (
+    <div className="bg-white rounded-2xl p-6 glow-card mb-6">
+      <h2 className="text-2xl font-bold mb-4">🚗 出行攻略</h2>
+
+      {/* 节点间隔 */}
+      <div className="mb-6">
+        <div className="font-semibold mb-3">📍 节点间距与耗时</div>
+        <div className="space-y-2">
+          {segments.slice(0, 6).map((s, i) => (
+            <div key={i} className="flex items-center gap-3 text-sm">
+              <div className="flex-1 flex items-center gap-2">
+                <span className="text-slate-400">{i+1}</span>
+                <span>{s.from}</span>
+                <span className="text-slate-400">→</span>
+                <span>{s.to}</span>
+              </div>
+              <div className="text-xs text-slate-500">📏 {s.dist}km</div>
+              <div className="text-xs text-slate-500">🚗 {s.drive}min</div>
+              <div className="text-xs text-slate-500">🚇 {s.transit}min</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* 公共交通 */}
+        <div className="border border-slate-200 rounded-xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <div className="font-bold text-lg">🚇 公共交通</div>
+            {prefs.transport === 'public' && <span className="text-xs px-2 py-1 bg-sky-100 text-sky-700 rounded">推荐</span>}
+          </div>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between"><span className="text-slate-600">机场往返</span><span>¥150-400</span></div>
+            <div className="flex justify-between"><span className="text-slate-600">市内地铁/日</span><span>¥{trans.publicTransit.metroDailyCost}</span></div>
+            <div className="flex justify-between"><span className="text-slate-600">出租车/日</span><span>¥{trans.publicTransit.taxiAvg*2}</span></div>
+            <div className="flex justify-between"><span className="text-slate-600">公交</span><span>¥{trans.publicTransit.busCost}/次</span></div>
+            <div className="flex justify-between font-bold pt-2 border-t border-slate-100"><span>{days}天预估</span><span className="text-sky-600">¥{fmt(publicCost)}</span></div>
+          </div>
+          {(hasKids || hasElder) && (
+            <div className="mt-3 text-xs bg-amber-50 p-2 rounded text-amber-800">
+              💡 {hasKids && '小孩'}{hasKids && hasElder && '、'}{hasElder && '老人'}同行建议：避开早晚高峰，多打车少地铁换乘
+            </div>
+          )}
+        </div>
+
+        {/* 自驾 */}
+        <div className="border border-slate-200 rounded-xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <div className="font-bold text-lg">🚗 {prefs.transport === 'rentcar' ? '租车自驾' : prefs.transport === 'owncar' ? '自驾出行' : '自驾备选'}</div>
+            {useDriving && <span className="text-xs px-2 py-1 bg-emerald-100 text-emerald-700 rounded">推荐</span>}
+          </div>
+          <div className="space-y-2 text-sm">
+            {prefs.transport === 'rentcar' && <div className="flex justify-between"><span className="text-slate-600">租车费/日</span><span>¥{carRentDaily}</span></div>}
+            <div className="flex justify-between"><span className="text-slate-600">过路费/日</span><span>¥{trans.driving.tollPerDay}</span></div>
+            <div className="flex justify-between"><span className="text-slate-600">油费(100km)</span><span>¥{trans.driving.fuelPer100km}</span></div>
+            <div className="flex justify-between"><span className="text-slate-600">停车费/日</span><span>¥{trans.driving.parking}</span></div>
+            <div className="flex justify-between font-bold pt-2 border-t border-slate-100">
+              <span>{days}天预估</span>
+              <span className="text-emerald-600">¥{fmt(drivingCost + (prefs.transport === 'rentcar' ? carRentDaily * days : 0))}</span>
+            </div>
+          </div>
+          <div className="mt-3 text-xs bg-emerald-50 p-2 rounded text-emerald-800">
+            ⚠️ 连续驾驶不超过3小时，行程已自动安排休息区停留
+            {hasKids && '。建议每2小时停车给孩子伸展'}
+            {hasElder && '。老人同行建议早上9点出发，晚6点前到达酒店'}
+          </div>
+        </div>
+      </div>
+
+      {/* 大交通 */}
+      <div className="mt-4 border border-slate-200 rounded-xl p-5">
+        <div className="font-bold text-lg mb-3">✈️ 往返大交通预估</div>
+        <div className="grid grid-cols-3 gap-3 text-sm">
+          <div className="p-3 rounded bg-slate-50">
+            <div className="text-slate-500 text-xs">机票</div>
+            <div className="font-bold">¥800-2200</div>
+          </div>
+          <div className="p-3 rounded bg-slate-50">
+            <div className="text-slate-500 text-xs">高铁</div>
+            <div className="font-bold">¥300-1500</div>
+          </div>
+          <div className="p-3 rounded bg-slate-50">
+            <div className="text-slate-500 text-xs">火车</div>
+            <div className="font-bold">¥80-500</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============ 住宿推荐 ============ */
+function AccommodationGuide({ city, prefs, route }) {
+  const acc = window.CITY_DATABASE[city].accommodation;
+  const tier = prefs.budget < 3000 ? 'budget' : prefs.budget < 6000 ? 'mid' : 'luxury';
+  const tierLabel = { luxury: '高档', mid: '中档', budget: '经济' }[tier];
+
+  // 获取最后一个景点（决定酒店选址）
+  const lastSpot = route.dayPlan[route.dayPlan.length - 1].list[0];
+
+  return (
+    <div className="bg-white rounded-2xl p-6 glow-card mb-6">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-2xl font-bold">🏨 住宿攻略</h2>
+        <div className="text-sm text-slate-500">基于预算自动推荐 <span className="text-sky-600 font-semibold">{tierLabel}</span></div>
+      </div>
+
+      <div className="text-sm bg-sky-50 p-3 rounded-lg mb-4 text-sky-900">
+        💡 智能选址逻辑：根据每天最后一个景点（如「{lastSpot}」）距离次日首景的距离，自动选择1-5km范围内安全便利的酒店
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {[
+          { key: 'luxury', label: '高档', icon: '👑', color: 'amber' },
+          { key: 'mid', label: '中档', icon: '🌟', color: 'sky' },
+          { key: 'budget', label: '经济', icon: '💼', color: 'emerald' }
+        ].map(t => (
+          <div key={t.key} className={`border-2 rounded-xl p-4 ${tier === t.key ? `border-${t.color}-500 ring-2 ring-${t.color}-100` : 'border-slate-200'}`}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="font-bold">{t.icon} {t.label}档</div>
+              {tier === t.key && <span className={`text-xs px-2 py-0.5 bg-${t.color}-100 text-${t.color}-700 rounded`}>推荐</span>}
+            </div>
+            <div className="space-y-3">
+              {acc[t.key].map((h, i) => (
+                <div key={i} className="border-t border-slate-100 pt-3 first:border-0 first:pt-0">
+                  <div className="font-semibold text-sm">{h.name}</div>
+                  <div className="text-xs text-slate-500 mt-0.5">📍 {h.loc}</div>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-xs text-slate-600">{stars(h.star)}</span>
+                    <span className="font-bold text-rose-500">¥{fmt(h.price)}/晚</span>
+                  </div>
+                  <div className="text-xs text-slate-500 mt-1">✓ {h.perks}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4 grid grid-cols-3 gap-3 text-xs">
+        <div className="p-2 bg-slate-50 rounded">🛡️ 安全性：选择24h前台、监控完善的连锁品牌</div>
+        <div className="p-2 bg-slate-50 rounded">🛒 补给便利：500m内有便利店/超市</div>
+        <div className="p-2 bg-slate-50 rounded">🍽️ 美食环境：步行15min内有3家以上特色餐厅</div>
+      </div>
+    </div>
+  );
+}
+
+/* ============ 费用预算表 ============ */
+function BudgetTable({ city, prefs, route }) {
+  const cost = calcRouteCost(prefs, route, city);
+  const overBudget = cost.total > prefs.budget;
+
+  const items = [
+    { key: 'flight', label: '✈️ 往返机票', val: cost.flight, color: 'sky' },
+    { key: 'hotel', label: `🏨 住宿(${cost.days-1}晚×${cost.hotelDaily})`, val: cost.hotel, color: 'amber' },
+    { key: 'food', label: '🍜 吃饭', val: cost.food, color: 'rose' },
+    { key: 'transport', label: '🚗 本地出行', val: cost.transport, color: 'emerald' },
+    { key: 'ticket', label: '🎫 景点门票', val: cost.ticket, color: 'purple' }
+  ];
+
+  return (
+    <div className="bg-white rounded-2xl p-6 glow-card mb-6">
+      <h2 className="text-2xl font-bold mb-4">💰 费用预算表</h2>
+
+      <div className="space-y-2 mb-4">
+        {items.map(it => {
+          const pct = (it.val / cost.total * 100).toFixed(1);
+          return (
+            <div key={it.key} className="flex items-center gap-3">
+              <div className="w-40 text-sm">{it.label}</div>
+              <div className="flex-1 bg-slate-100 rounded-full h-7 relative overflow-hidden">
+                <div className={`absolute inset-y-0 left-0 bg-${it.color}-400 rounded-full`} style={{ width: pct + '%' }}></div>
+                <div className="absolute inset-0 flex items-center justify-between px-3 text-sm">
+                  <span className="font-medium">{pct}%</span>
+                  <span className="font-bold">¥{fmt(it.val)}</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* 购物预留：不计入总费用，仅作提示 */}
+      <div className="mb-4 p-3 rounded-xl bg-pink-50 border border-pink-200">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium">🛍️ 购物预留</span>
+            <span className="px-2 py-0.5 text-[11px] rounded-full bg-pink-100 text-pink-700 border border-pink-200">不计入总费用</span>
+          </div>
+          <span className="font-bold text-pink-600">¥{fmt(cost.shopping)}</span>
+        </div>
+        <div className="text-xs text-slate-500 mt-1">
+          ℹ️ 备注：购物属于个人弹性消费，仅作预留提示，<b>不计入下方总计预估</b>。请按需自由支配。
+        </div>
+      </div>
+
+      <div className={`p-4 rounded-xl ${overBudget ? 'bg-rose-50 border border-rose-200' : 'bg-emerald-50 border border-emerald-200'}`}>
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-sm text-slate-600">总预算 vs 实际预估</div>
+            <div className="text-xs text-slate-500 mt-0.5">
+              {overBudget ? '⚠️ 实际预算超出输入预算，建议下调档次或减少天数' : '✅ 在预算范围内，方案合理'}
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-xs text-slate-500">总计预估</div>
+            <div className={`text-3xl font-bold ${overBudget ? 'text-rose-500' : 'text-emerald-600'}`}>¥{fmt(cost.total)}</div>
+            <div className="text-xs text-slate-500 mt-1">你的预算 ¥{fmt(prefs.budget)}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============ 最终方案输出（翻页效果） ============ */
+function FinalPlanFlipbook({ city, prefs, route, onRestart }) {
+  const [page, setPage] = useState(0);
+  const cost = calcRouteCost(prefs, route, city);
+  const cityData = window.CITY_DATABASE[city];
+
+  const pages = [
+    {
+      title: '封面',
+      content: (
+        <div className="flex flex-col items-center justify-center h-full text-center bg-gradient-to-br from-sky-100 via-white to-indigo-100 p-12">
+          <div className="text-7xl mb-4">✈️</div>
+          <div className="text-sm text-sky-600 mb-2">TravelMind 智能定制方案</div>
+          <h1 className="text-4xl font-bold mb-3">{city} {route.days}日{['','经典','小众','人文','自然'][['classic','niche','culture','nature'].indexOf(route.routeKey || 'classic')+1]}之旅</h1>
+          <p className="text-slate-500 mb-6 max-w-md">{route.tagline}</p>
+          <div className="flex gap-6 text-sm">
+            <div><span className="text-slate-400">预算：</span><span className="font-bold">¥{fmt(prefs.budget)}</span></div>
+            <div><span className="text-slate-400">同行：</span><span className="font-bold">{ {none:'纯成人',kids:'带小孩',elder:'带老人',both:'有老有小'}[prefs.companions] }</span></div>
+            <div><span className="text-slate-400">出行：</span><span className="font-bold">{ {public:'公共交通',rentcar:'租车',owncar:'自驾',mixed:'混合'}[prefs.transport] }</span></div>
+          </div>
+        </div>
+      )
+    },
+    {
+      title: '行程概要',
+      content: (
+        <div className="p-10 h-full overflow-auto">
+          <h2 className="text-3xl font-bold mb-6">📅 行程概要</h2>
+          <div className="space-y-3">
+            {route.dayPlan.map(d => (
+              <div key={d.day} className="border-l-4 border-sky-500 pl-4 py-2">
+                <div className="font-bold text-lg">第 {d.day} 天 · {d.theme}</div>
+                <div className="text-sm text-slate-600 mt-1">{d.list.join(' → ')}</div>
+                <div className="text-xs text-slate-400 mt-1">⏱️ 全天约 {d.hours} 小时</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+    },
+    {
+      title: '核心景点',
+      content: (
+        <div className="p-10 h-full overflow-auto">
+          <h2 className="text-3xl font-bold mb-6">⭐ 必玩景点 TOP 5</h2>
+          <div className="space-y-3">
+            {cityData.attractions.mustSee.map((s, i) => (
+              <div key={s.name} className="flex gap-3 p-3 border rounded-lg">
+                <div className="w-10 h-10 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-bold">{i+1}</div>
+                <div className="flex-1">
+                  <div className="font-semibold">{s.name} · ¥{s.ticket}</div>
+                  <div className="text-xs text-slate-500 mt-1">{s.intro.slice(0, 60)}...</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+    },
+    {
+      title: '住宿',
+      content: (
+        <div className="p-10 h-full overflow-auto">
+          <h2 className="text-3xl font-bold mb-6">🏨 推荐住宿</h2>
+          <div className="text-sm text-slate-500 mb-4">基于你 ¥{fmt(prefs.budget)} 预算，推荐 {cost.hotelTier === 'luxury' ? '高档' : cost.hotelTier === 'mid' ? '中档' : '经济型'}</div>
+          {cityData.accommodation[cost.hotelTier].map((h, i) => (
+            <div key={i} className="p-4 border rounded-lg mb-3">
+              <div className="flex justify-between"><span className="font-bold">{h.name}</span><span className="text-rose-500 font-bold">¥{fmt(h.price)}/晚</span></div>
+              <div className="text-xs text-slate-500 mt-1">📍 {h.loc} · {h.perks}</div>
+            </div>
+          ))}
+        </div>
+      )
+    },
+    {
+      title: '预算',
+      content: (
+        <div className="p-10 h-full overflow-auto">
+          <h2 className="text-3xl font-bold mb-6">💰 完整预算</h2>
+          <table className="w-full text-sm">
+            <tbody>
+              <tr className="border-b"><td className="py-3">✈️ 往返机票</td><td className="text-right font-bold">¥{fmt(cost.flight)}</td></tr>
+              <tr className="border-b"><td className="py-3">🏨 住宿({cost.days-1}晚)</td><td className="text-right font-bold">¥{fmt(cost.hotel)}</td></tr>
+              <tr className="border-b"><td className="py-3">🍜 吃饭</td><td className="text-right font-bold">¥{fmt(cost.food)}</td></tr>
+              <tr className="border-b"><td className="py-3">🚗 本地出行</td><td className="text-right font-bold">¥{fmt(cost.transport)}</td></tr>
+              <tr className="border-b"><td className="py-3">🎫 景点门票</td><td className="text-right font-bold">¥{fmt(cost.ticket)}</td></tr>
+              <tr className="bg-sky-50"><td className="py-4 font-bold text-lg">总计预估</td><td className="text-right font-bold text-lg text-sky-600">¥{fmt(cost.total)}</td></tr>
+              <tr className="border-t border-dashed"><td className="py-3 text-pink-600">🛍️ 购物预留 <span className="text-[11px] text-slate-400">(不计入总费用)</span></td><td className="text-right font-bold text-pink-500">¥{fmt(cost.shopping)}</td></tr>
+            </tbody>
+          </table>
+          <div className="mt-6 text-center text-xs text-slate-400">— 完 —</div>
+          <div className="mt-4 flex gap-3 justify-center">
+            <button onClick={() => window.print()} className="px-4 py-2 text-sm bg-slate-100 rounded hover:bg-slate-200">📄 打印保存</button>
+            <button onClick={onRestart} className="px-4 py-2 text-sm bg-sky-500 text-white rounded hover:bg-sky-600">🔄 重新规划</button>
+          </div>
+        </div>
+      )
+    }
+  ];
+
+  return (
+    <div className="max-w-5xl mx-auto py-10 px-6">
+      <div className="text-center mb-6">
+        <div className="text-sm text-sky-600">🎉 完整方案已生成</div>
+        <h1 className="text-2xl font-bold mt-1">点击翻页查看你的旅游方案</h1>
+      </div>
+
+      <div className="flipbook-stage" style={{ height: 600 }}>
+        <div className="bg-white rounded-2xl shadow-2xl page-shadow h-full overflow-hidden relative">
+          {pages.map((p, i) => (
+            <div
+              key={i}
+              className={`absolute inset-0 fade-in ${i === page ? 'block' : 'hidden'}`}>
+              {p.content}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 翻页控制 */}
+      <div className="flex items-center justify-between mt-6">
+        <button onClick={() => setPage(Math.max(0, page-1))} disabled={page === 0}
+          className="px-5 py-2.5 bg-white rounded-lg border border-slate-200 disabled:opacity-30 hover:bg-slate-50">
+          ← 上一页
+        </button>
+        <div className="flex gap-2">
+          {pages.map((_, i) => (
+            <button key={i} onClick={() => setPage(i)} className={`w-10 h-10 rounded-lg text-sm font-bold ${i === page ? 'bg-sky-500 text-white' : 'bg-white border border-slate-200 hover:bg-slate-50'}`}>
+              {i+1}
+            </button>
+          ))}
+        </div>
+        <button onClick={() => setPage(Math.min(pages.length-1, page+1))} disabled={page === pages.length-1}
+          className="px-5 py-2.5 bg-sky-500 text-white rounded-lg disabled:opacity-30 hover:bg-sky-600">
+          下一页 →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ============ 完整方案展示页 ============ */
+function FullPlan({ city, prefs, routeKey, onRestart }) {
+  const route = { ...window.CITY_DATABASE[city].routes[routeKey], routeKey };
+  const [showFlipbook, setShowFlipbook] = useState(false);
+
+  if (showFlipbook) {
+    return <FinalPlanFlipbook city={city} prefs={prefs} route={route} onRestart={onRestart} />;
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto py-8 px-6">
+      <div className="bg-gradient-to-r from-sky-500 to-indigo-600 text-white rounded-2xl p-6 mb-6 flex items-center justify-between">
+        <div>
+          <div className="text-sm opacity-80">已为你定制 ✨</div>
+          <h1 className="text-3xl font-bold mt-1">{route.name}</h1>
+          <p className="opacity-90 mt-1">{route.tagline} · {route.days}天 · {route.spots.length}个景点</p>
+        </div>
+        <button onClick={() => setShowFlipbook(true)} className="px-6 py-3 bg-white text-sky-600 font-bold rounded-xl hover:opacity-90">
+          📖 翻页式方案 →
+        </button>
+      </div>
+
+      <AttractionsGuide city={city} />
+      <TransportGuide city={city} prefs={prefs} route={route} />
+      <AccommodationGuide city={city} prefs={prefs} route={route} />
+      <BudgetTable city={city} prefs={prefs} route={route} />
+
+      <div className="text-center py-8">
+        <button onClick={() => setShowFlipbook(true)} className="px-8 py-4 bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold text-lg rounded-2xl hover:opacity-90 mr-3">
+          📖 查看翻页版完整方案
+        </button>
+        <button onClick={onRestart} className="px-8 py-4 bg-white border-2 border-slate-200 text-slate-700 font-bold text-lg rounded-2xl hover:bg-slate-50">
+          🔄 重新规划
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ============ 主应用 ============ */
+function App() {
+  const [stage, setStage] = useState('home'); // home | collect | recommend | plan
+  const [prompt, setPrompt] = useState('');
+  const [city, setCity] = useState(null);
+  const [prefs, setPrefs] = useState(null);
+  const [routeKey, setRouteKey] = useState(null);
+
+  const reset = () => {
+    setStage('home');
+    setPrompt('');
+    setCity(null);
+    setPrefs(null);
+    setRouteKey(null);
+  };
+
+  return (
+    <>
+      <Header onReset={reset} />
+      {stage === 'home' && (
+        <HomePage onSubmit={(text) => {
+          setPrompt(text);
+          setCity(extractCity(text));
+          setStage('collect');
+        }} />
+      )}
+      {stage === 'collect' && (
+        <InfoCollector city={city} prompt={prompt}
+          onComplete={(c, ans) => { setCity(c); setPrefs(ans); setStage('recommend'); }} />
+      )}
+      {stage === 'recommend' && (
+        <RouteRecommendation city={city} prefs={prefs}
+          onSelect={(rk) => { setRouteKey(rk); setStage('plan'); }} />
+      )}
+      {stage === 'plan' && (
+        <FullPlan city={city} prefs={prefs} routeKey={routeKey} onRestart={reset} />
+      )}
+
+      <footer className="border-t border-slate-200 py-6 mt-12 text-center text-sm text-slate-400">
+        <div>TravelMind · AI旅游路线规划设计师 · 第一期：中国大陆景点</div>
+        <div className="mt-1 text-xs">数据来源：高德POI · 互联网售票热度 · 近3月搜索趋势</div>
+      </footer>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
