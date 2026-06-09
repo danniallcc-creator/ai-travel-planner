@@ -20,7 +20,8 @@
 <script src="../data.js"></script>
 <script src="../data-provinces.js"></script>
 <style>
-  body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; font-size: 16px; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; font-size: 16px; overflow-x: hidden; -webkit-text-size-adjust: 100%; }
+  input, button, select, textarea { font-size: inherit; }
   .bg-gradient-hero { background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0c4a6e 100%); }
   .glow-card { box-shadow: 0 4px 16px rgba(0,0,0,.08), 0 1px 4px rgba(0,0,0,.04); }
   .typing-cursor::after { content: '|'; animation: blink 1s infinite; color: #60a5fa; }
@@ -62,7 +63,7 @@ const { useState, useEffect, useRef, useMemo, useCallback } = React;
 
 /* ============ 工具函数 ============ */
 const fmt = n => Number(n).toLocaleString('zh-CN');
-const stars = n => '\u2605'.repeat(n) + '\u2606'.repeat(5-n);
+const stars = n => '★'.repeat(n) + '☆'.repeat(5-n);
 
 function extractDestination(text) {
   if (!text) return null;
@@ -186,28 +187,28 @@ function calcTransitSegment(km, transportMode) {
     const tolls = km > 30 ? Math.round(km * 0.45) : 0;
     const parking = km > 0 ? 15 : 0;
     return {
-      icon: '\uD83D\uDE97', mode: transportMode === 'rentcar' ? '租车自驾' : '自驾',
+      icon: '🚗', mode: transportMode === 'rentcar' ? '租车自驾' : '自驾',
       time: minutes, cost: fuelOrPower + tolls + parking,
-      detail: `${km.toFixed(1)}km \u00b7 油费 \u00a5${fuelOrPower}` + (tolls ? ` \u00b7 过路费 \u00a5${tolls}` : '') + ` \u00b7 停车 \u00a5${parking}`,
-      tip: km / 30 > 3 ? '\u26a0\ufe0f 连续驾驶将超3小时，途中安排休息区' : null
+      detail: `${km.toFixed(1)}km · 油费 ¥${fuelOrPower}` + (tolls ? ` · 过路费 ¥${tolls}` : '') + ` · 停车 ¥${parking}`,
+      tip: km / 30 > 3 ? '⚠️ 连续驾驶将超3小时，途中安排休息区' : null
     };
   } else {
     let icon, mode, cost, speed, detail;
     if (km < 1.5) {
-      icon = '\uD83D\uDEB6'; mode = '步行'; cost = 0; speed = 4;
-      detail = `${km.toFixed(1)}km \u00b7 步行可达`;
+      icon = '🚶'; mode = '步行'; cost = 0; speed = 4;
+      detail = `${km.toFixed(1)}km · 步行可达`;
     } else if (km < 8) {
-      icon = '\uD83D\uDE87'; mode = '地铁'; cost = Math.min(8, 3 + Math.floor(km / 2)); speed = 22;
-      detail = `${km.toFixed(1)}km \u00b7 地铁约 ${Math.ceil(km / 1.2)} 站 \u00b7 票价 \u00a5${cost}`;
+      icon = '🚇'; mode = '地铁'; cost = Math.min(8, 3 + Math.floor(km / 2)); speed = 22;
+      detail = `${km.toFixed(1)}km · 地铁约 ${Math.ceil(km / 1.2)} 站 · 票价 ¥${cost}`;
     } else if (km < 25) {
-      icon = '\uD83D\uDE96'; mode = '出租车/网约车'; cost = Math.round(13 + km * 2.4); speed = 28;
-      detail = `${km.toFixed(1)}km \u00b7 出租车起步价+里程费 \u2248 \u00a5${cost}`;
+      icon = '🚖'; mode = '出租车/网约车'; cost = Math.round(13 + km * 2.4); speed = 28;
+      detail = `${km.toFixed(1)}km · 出租车起步价+里程费 ≈ ¥${cost}`;
     } else if (km < 80) {
-      icon = '\uD83D\uDE8C'; mode = '景区直通巴士/长途车'; cost = Math.round(km * 1.4); speed = 50;
-      detail = `${km.toFixed(1)}km \u00b7 长途/景区直通车 \u2248 \u00a5${cost}`;
+      icon = '🚌'; mode = '景区直通巴士/长途车'; cost = Math.round(km * 1.4); speed = 50;
+      detail = `${km.toFixed(1)}km · 长途/景区直通车 ≈ ¥${cost}`;
     } else {
-      icon = '\uD83D\uDE84'; mode = '高铁/动车'; cost = Math.round(km * 0.55); speed = 200;
-      detail = `${km.toFixed(1)}km \u00b7 高铁二等座 \u2248 \u00a5${cost}`;
+      icon = '🚄'; mode = '高铁/动车'; cost = Math.round(km * 0.55); speed = 200;
+      detail = `${km.toFixed(1)}km · 高铁二等座 ≈ ¥${cost}`;
     }
     const minutes = Math.max(5, Math.round(km / speed * 60));
     return { icon, mode, time: minutes, cost, detail, tip: null };
@@ -236,11 +237,11 @@ const PREF_LABEL = { hot: '热门优先', niche: '小众优先', both: '热门+�
 /* ============ 底部导航栏 ============ */
 function BottomNav({ stage, onNav }) {
   const tabs = [
-    { key: 'home', icon: '\uD83C\uDFE0', label: '首页' },
-    { key: 'route', icon: '\uD83D\uDDFA\uFE0F', label: '路线' },
-    { key: 'spots', icon: '\uD83C\uDFD4\uFE0F', label: '景点' },
-    { key: 'hotel', icon: '\uD83C\uDFE8', label: '住宿' },
-    { key: 'budget', icon: '\uD83D\uDCB0', label: '预算' }
+    { key: 'home', icon: '🏠', label: '首页' },
+    { key: 'route', icon: '🗺️', label: '路线' },
+    { key: 'spots', icon: '🏔️', label: '景点' },
+    { key: 'hotel', icon: '🏨', label: '住宿' },
+    { key: 'budget', icon: '💰', label: '预算' }
   ];
   const isActive = (key) => {
     if (key === 'home') return stage === 'home';
@@ -256,7 +257,7 @@ function BottomNav({ stage, onNav }) {
         {tabs.map(t => (
           <button key={t.key} onClick={() => onNav(t.key)}
             className={`flex flex-col items-center py-2 px-3 min-w-[56px] active:scale-95 transition-transform ${isActive(t.key) ? 'text-sky-600' : 'text-slate-400'}`}>
-            <span className="text-xl">{t.icon}</span>
+            <span className="text-2xl flex-shrink-0">{t.icon}</span>
             <span className="text-[11px] mt-0.5 font-medium">{t.label}</span>
           </button>
         ))}
@@ -273,30 +274,30 @@ function HomePage({ onSubmit }) {
 
   return (
     <div className="bg-gradient-hero text-white min-h-screen">
-      <div className="px-4 pt-12 pb-8 text-center">
+      <div className="px-5 pt-8 pb-6 text-center">
         <div className="inline-block mb-4 px-3 py-1 rounded-full bg-white/10 backdrop-blur text-xs border border-white/20">
-          AI智能规划 \u00b7 一键导入高德
+          AI智能规划 · 一键导入高德
         </div>
-        <h1 className="text-3xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-white via-sky-200 to-blue-300">
+        <h1 className="text-2xl font-bold mb-1 bg-clip-text text-transparent bg-gradient-to-r from-white via-sky-200 to-blue-300">
           让AI为你设计旅程
         </h1>
-        <p className="text-base text-slate-300 mb-8">告诉我你想去哪里</p>
+        <p className="text-sm text-slate-300 mb-6">告诉我你想去哪里</p>
 
-        <div className="bg-white/95 backdrop-blur-xl rounded-2xl p-3 shadow-2xl">
+        <div className="bg-white/95 backdrop-blur-xl rounded-2xl p-4 shadow-2xl mx-auto max-w-sm">
           <div className="flex items-center gap-2 px-2">
-            <span className="text-xl">\uD83D\uDCAD</span>
+            <span className="text-2xl flex-shrink-0">💭</span>
             <input
               value={text}
               onChange={e => setText(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && text.trim() && onSubmit(text)}
               placeholder="我想去...旅游"
-              className="flex-1 bg-transparent text-slate-800 text-base outline-none placeholder-slate-400 py-2"
+              className="flex-1 bg-transparent text-slate-800 text-[17px] outline-none placeholder-slate-400 py-3 min-h-[44px]"
             />
           </div>
           <button
             onClick={() => text.trim() && onSubmit(text)}
             disabled={!text.trim()}
-            className="w-full mt-2 py-3.5 bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-semibold rounded-xl active:scale-[0.98] disabled:opacity-30 transition-transform text-base">
+            className="w-full mt-3 py-4 bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-semibold rounded-xl active:scale-[0.98] disabled:opacity-30 transition-transform text-[17px] min-h-[52px]">
             开始规划
           </button>
         </div>
@@ -305,7 +306,7 @@ function HomePage({ onSubmit }) {
           <div className="text-xs text-slate-400 mb-2">试试这些：</div>
           <div className="flex flex-wrap gap-2 justify-center mb-6">
             {examples.map(ex => (
-              <button key={ex} onClick={() => onSubmit(ex)} className="text-sm px-3 py-2 rounded-full bg-white/5 active:bg-white/15 border border-white/10 transition min-h-[44px] flex items-center">
+              <button key={ex} onClick={() => onSubmit(ex)} className="text-sm px-4 py-2.5 rounded-full bg-white/10 active:bg-white/20 border border-white/15 transition min-h-[44px] flex items-center">
                 {ex}
               </button>
             ))}
@@ -317,7 +318,7 @@ function HomePage({ onSubmit }) {
           <div className="flex flex-wrap gap-2 justify-center">
             {hotCities.map(c => (
               <button key={c} onClick={() => onSubmit(`我想去${c}旅游`)}
-                className="px-3 py-2 rounded-lg bg-white/5 active:bg-white/15 border border-white/10 text-sm min-h-[44px] transition">
+                className="px-3 py-1.5 rounded-lg bg-white/5 active:bg-white/15 border border-white/10 text-sm min-h-[40px] transition">
                 {c}
               </button>
             ))}
@@ -410,7 +411,7 @@ function InfoCollector({ city, prompt, onComplete }) {
         ))}
       </div>
       <div className="text-xs text-sky-600 mb-2">
-        第 {step+1}/{Q.length} 步 \u00b7 {pickedCity}
+        第 {step+1}/{Q.length} 步 · {pickedCity}
       </div>
       <div className="bg-white rounded-2xl p-5 glow-card slide-in" key={step}>
         <div className="text-4xl mb-3">{cur.icon}</div>
@@ -430,7 +431,7 @@ function InfoCollector({ city, prompt, onComplete }) {
       </div>
       {step > 0 && (
         <button onClick={() => setStep(step-1)} className="mt-3 text-slate-500 text-sm py-2 min-h-[44px]">
-          \u2190 上一步
+          ← 上一步
         </button>
       )}
     </div>
@@ -454,7 +455,7 @@ function RouteRecommendation({ city, prefs, onSelect }) {
       <div className="mb-4">
         <div className="text-xs text-sky-600">选择路线类型</div>
         <h1 className="text-2xl font-bold mt-1">{city}精选路线</h1>
-        <p className="text-slate-500 text-sm mt-1">预算 \u00a5{fmt(prefs.budget)}</p>
+        <p className="text-slate-500 text-sm mt-1">预算 ¥{fmt(prefs.budget)}</p>
       </div>
 
       <div className="space-y-3 mb-6">
@@ -545,10 +546,10 @@ function RouteDetail({ city, routeKey, prefs, onConfirm }) {
 
       <div className="space-y-2">
         <button onClick={viewInAmap} className="w-full py-3 bg-slate-100 text-slate-700 font-semibold rounded-xl active:scale-[0.98] transition-transform flex items-center justify-center gap-2 min-h-[48px] text-sm">
-          \uD83D\uDDFA\uFE0F 在高德地图中查看
+          🗺️ 在高德地图中查看
         </button>
         <button onClick={importToAmap} className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-cyan-600 text-white font-semibold rounded-xl active:scale-[0.98] transition-transform flex items-center justify-center gap-2 min-h-[48px]">
-          \uD83D\uDDFA\uFE0F 一键导入高德导航
+          🗺️ 一键导入高德导航
         </button>
       </div>
     </div>
@@ -560,9 +561,9 @@ function AttractionsGuide({ city }) {
   const [tab, setTab] = useState('mustSee');
   const data = window.CITY_DATABASE[city].attractions;
   const tabs = [
-    { key: 'mustSee', label: '必玩景点', icon: '\u2b50' },
-    { key: 'secondary', label: '次要景点', icon: '\uD83D\uDD38' },
-    { key: 'hidden', label: '小众推荐', icon: '\uD83C\uDF1F' }
+    { key: 'mustSee', label: '必玩景点', icon: '⭐' },
+    { key: 'secondary', label: '次要景点', icon: '🔸' },
+    { key: 'hidden', label: '小众推荐', icon: '🌟' }
   ];
 
   return (
@@ -604,11 +605,11 @@ function SpotCard({ spot, idx, kind, city }) {
             <div className="flex items-center gap-2 flex-wrap">
               <div className="font-bold">#{spot.rank} {spot.name}</div>
               {kind === 'hidden' && <span className="text-[11px] px-2 py-0.5 bg-rose-100 text-rose-700 rounded">{spot.trend}</span>}
-              {spot.ticket > 0 && <span className="text-[11px] px-2 py-0.5 bg-amber-100 text-amber-700 rounded">\u00a5{spot.ticket}</span>}
+              {spot.ticket > 0 && <span className="text-[11px] px-2 py-0.5 bg-amber-100 text-amber-700 rounded">¥{spot.ticket}</span>}
             </div>
             <p className="text-sm text-slate-600 mt-1 line-clamp-2">{spot.intro}</p>
           </div>
-          <div className="text-slate-400 text-lg flex-shrink-0">{expanded ? '\u2303' : '\u2304'}</div>
+          <div className="text-slate-400 text-lg flex-shrink-0">{expanded ? '⌃' : '⌄'}</div>
         </div>
         <div className="mt-2 flex items-center gap-3 text-xs text-slate-500">
           <span>{spot.duration}h</span>
@@ -621,16 +622,16 @@ function SpotCard({ spot, idx, kind, city }) {
           <div className="flex gap-2">
             <a href={navCarUrl} target="_blank" rel="noopener"
               className="flex-1 py-2.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-medium text-center active:bg-blue-100 min-h-[44px] flex items-center justify-center gap-1">
-              \uD83D\uDE97 驾车导航
+              🚗 驾车导航
             </a>
             <a href={navBusUrl} target="_blank" rel="noopener"
               className="flex-1 py-2.5 bg-green-50 text-green-600 rounded-lg text-xs font-medium text-center active:bg-green-100 min-h-[44px] flex items-center justify-center gap-1">
-              \uD83D\uDE87 公交导航
+              🚇 公交导航
             </a>
           </div>
 
           <div>
-            <div className="font-semibold text-sm mb-2">\uD83D\uDCF8 打卡点</div>
+            <div className="font-semibold text-sm mb-2">📸 打卡点</div>
             <div className="space-y-1.5">
               {spot.photoSpots.map((p, i) => (
                 <div key={i} className="p-2 rounded-lg bg-slate-50">
@@ -642,7 +643,7 @@ function SpotCard({ spot, idx, kind, city }) {
           </div>
 
           <div>
-            <div className="font-semibold text-sm mb-2">\uD83C\uDF5C 周边美食</div>
+            <div className="font-semibold text-sm mb-2">🍜 周边美食</div>
             <div className="space-y-1">
               {spot.food.map((f, i) => (
                 <div key={i} className="flex items-center gap-2 text-sm">
@@ -654,7 +655,7 @@ function SpotCard({ spot, idx, kind, city }) {
             </div>
           </div>
 
-          <div className="text-xs text-slate-500 bg-amber-50 p-2 rounded-lg">\uD83D\uDCA1 {spot.tip}</div>
+          <div className="text-xs text-slate-500 bg-amber-50 p-2 rounded-lg">💡 {spot.tip}</div>
         </div>
       )}
     </div>
@@ -698,7 +699,7 @@ function TransportGuide({ city, prefs, route }) {
           {segments.slice(0, 6).map((s, i) => (
             <div key={i} className="flex items-center gap-2 text-sm bg-slate-50 rounded-lg p-2">
               <span className="text-slate-400 text-xs">{i+1}</span>
-              <span className="flex-1 truncate text-xs">{s.from} \u2192 {s.to}</span>
+              <span className="flex-1 truncate text-xs">{s.from} → {s.to}</span>
               <span className="text-[11px] text-slate-500">{s.dist}km</span>
               <span className="text-[11px] text-slate-500">{s.drive}min</span>
             </div>
@@ -709,13 +710,13 @@ function TransportGuide({ city, prefs, route }) {
       <div className="space-y-3">
         <div className="border border-slate-200 rounded-xl p-4">
           <div className="flex items-center justify-between mb-2">
-            <div className="font-bold">\uD83D\uDE87 公共交通</div>
+            <div className="font-bold">🚇 公共交通</div>
             {prefs.transport === 'public' && <span className="text-[11px] px-2 py-0.5 bg-sky-100 text-sky-700 rounded">推荐</span>}
           </div>
           <div className="space-y-1.5 text-sm">
-            <div className="flex justify-between"><span className="text-slate-600">市内地铁/日</span><span>\u00a5{trans.publicTransit.metroDailyCost}</span></div>
-            <div className="flex justify-between"><span className="text-slate-600">出租车/日</span><span>\u00a5{trans.publicTransit.taxiAvg*2}</span></div>
-            <div className="flex justify-between font-bold pt-2 border-t border-slate-100"><span>{days}天预估</span><span className="text-sky-600">\u00a5{fmt(publicCost)}</span></div>
+            <div className="flex justify-between"><span className="text-slate-600">市内地铁/日</span><span>¥{trans.publicTransit.metroDailyCost}</span></div>
+            <div className="flex justify-between"><span className="text-slate-600">出租车/日</span><span>¥{trans.publicTransit.taxiAvg*2}</span></div>
+            <div className="flex justify-between font-bold pt-2 border-t border-slate-100"><span>{days}天预估</span><span className="text-sky-600">¥{fmt(publicCost)}</span></div>
           </div>
           {(hasKids || hasElder) && (
             <div className="mt-2 text-xs bg-amber-50 p-2 rounded text-amber-800">
@@ -726,34 +727,34 @@ function TransportGuide({ city, prefs, route }) {
 
         <div className="border border-slate-200 rounded-xl p-4">
           <div className="flex items-center justify-between mb-2">
-            <div className="font-bold">\uD83D\uDE97 {prefs.transport === 'rentcar' ? '租车自驾' : '自驾'}</div>
+            <div className="font-bold">🚗 {prefs.transport === 'rentcar' ? '租车自驾' : '自驾'}</div>
             {useDriving && <span className="text-[11px] px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded">推荐</span>}
           </div>
           <div className="space-y-1.5 text-sm">
-            {prefs.transport === 'rentcar' && <div className="flex justify-between"><span className="text-slate-600">租车/日</span><span>\u00a5{carRentDaily}</span></div>}
-            <div className="flex justify-between"><span className="text-slate-600">过路费/日</span><span>\u00a5{trans.driving.tollPerDay}</span></div>
-            <div className="flex justify-between"><span className="text-slate-600">油费(100km)</span><span>\u00a5{trans.driving.fuelPer100km}</span></div>
+            {prefs.transport === 'rentcar' && <div className="flex justify-between"><span className="text-slate-600">租车/日</span><span>¥{carRentDaily}</span></div>}
+            <div className="flex justify-between"><span className="text-slate-600">过路费/日</span><span>¥{trans.driving.tollPerDay}</span></div>
+            <div className="flex justify-between"><span className="text-slate-600">油费(100km)</span><span>¥{trans.driving.fuelPer100km}</span></div>
             <div className="flex justify-between font-bold pt-2 border-t border-slate-100">
               <span>{days}天预估</span>
-              <span className="text-emerald-600">\u00a5{fmt(drivingCost + (prefs.transport === 'rentcar' ? carRentDaily * days : 0))}</span>
+              <span className="text-emerald-600">¥{fmt(drivingCost + (prefs.transport === 'rentcar' ? carRentDaily * days : 0))}</span>
             </div>
           </div>
         </div>
 
         <div className="border border-slate-200 rounded-xl p-4">
-          <div className="font-bold mb-2">\u2708\uFE0F 往返大交通</div>
+          <div className="font-bold mb-2">✈️ 往返大交通</div>
           <div className="grid grid-cols-3 gap-2 text-sm">
             <div className="p-2 rounded bg-slate-50 text-center">
               <div className="text-slate-500 text-[11px]">机票</div>
-              <div className="font-bold text-sm">\u00a5800-2200</div>
+              <div className="font-bold text-sm">¥800-2200</div>
             </div>
             <div className="p-2 rounded bg-slate-50 text-center">
               <div className="text-slate-500 text-[11px]">高铁</div>
-              <div className="font-bold text-sm">\u00a5300-1500</div>
+              <div className="font-bold text-sm">¥300-1500</div>
             </div>
             <div className="p-2 rounded bg-slate-50 text-center">
               <div className="text-slate-500 text-[11px]">火车</div>
-              <div className="font-bold text-sm">\u00a580-500</div>
+              <div className="font-bold text-sm">¥80-500</div>
             </div>
           </div>
         </div>
@@ -769,9 +770,9 @@ function AccommodationGuide({ city, prefs, route }) {
   const [activeTier, setActiveTier] = useState(tier);
 
   const tierConfig = [
-    { key: 'luxury', label: '高档', icon: '\uD83D\uDC51' },
-    { key: 'mid', label: '中档', icon: '\u2B50' },
-    { key: 'budget', label: '经济', icon: '\uD83D\uDCBC' }
+    { key: 'luxury', label: '高档', icon: '👑' },
+    { key: 'mid', label: '中档', icon: '⭐' },
+    { key: 'budget', label: '经济', icon: '💼' }
   ];
 
   return (
@@ -798,7 +799,7 @@ function AccommodationGuide({ city, prefs, route }) {
                 <div className="text-xs text-slate-500 mt-1">{h.perks}</div>
               </div>
               <div className="text-right flex-shrink-0 ml-2">
-                <div className="font-bold text-rose-500">\u00a5{fmt(h.price)}</div>
+                <div className="font-bold text-rose-500">¥{fmt(h.price)}</div>
                 <div className="text-[11px] text-slate-400">/晚</div>
               </div>
             </div>
@@ -808,8 +809,8 @@ function AccommodationGuide({ city, prefs, route }) {
       </div>
 
       <div className="mt-3 space-y-1.5 text-xs text-slate-500">
-        <div className="p-2 bg-slate-50 rounded">\uD83D\uDEE1\uFE0F 选择24h前台连锁品牌</div>
-        <div className="p-2 bg-slate-50 rounded">\uD83D\uDED2 500m内有便利店/超市</div>
+        <div className="p-2 bg-slate-50 rounded">🛡️ 选择24h前台连锁品牌</div>
+        <div className="p-2 bg-slate-50 rounded">🛒 500m内有便利店/超市</div>
       </div>
     </div>
   );
@@ -839,7 +840,7 @@ function BudgetTable({ city, prefs, route }) {
             <div key={it.key}>
               <div className="flex justify-between text-sm mb-1">
                 <span className="text-slate-600">{it.label}</span>
-                <span className="font-bold">\u00a5{fmt(it.val)}</span>
+                <span className="font-bold">¥{fmt(it.val)}</span>
               </div>
               <div className="bg-slate-100 rounded-full h-4 relative overflow-hidden">
                 <div className={`absolute inset-y-0 left-0 bg-${it.color}-400 rounded-full`} style={{ width: pct + '%' }}></div>
@@ -854,8 +855,8 @@ function BudgetTable({ city, prefs, route }) {
 
       <div className="mb-4 p-3 rounded-xl bg-pink-50 border border-pink-200">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium">\uD83D\uDECD\uFE0F 购物预留</span>
-          <span className="font-bold text-pink-600">\u00a5{fmt(cost.shopping)}</span>
+          <span className="text-sm font-medium">🛍️ 购物预留</span>
+          <span className="font-bold text-pink-600">¥{fmt(cost.shopping)}</span>
         </div>
         <div className="text-[11px] text-slate-500 mt-1">不计入总费用</div>
       </div>
@@ -865,9 +866,9 @@ function BudgetTable({ city, prefs, route }) {
           {overBudget ? '预算超出，建议调整' : '在预算范围内'}
         </div>
         <div className="flex items-end justify-between">
-          <div className="text-xs text-slate-500">你的预算 \u00a5{fmt(prefs.budget)}</div>
+          <div className="text-xs text-slate-500">你的预算 ¥{fmt(prefs.budget)}</div>
           <div className={`text-3xl font-bold ${overBudget ? 'text-rose-500' : 'text-emerald-600'}`}>
-            \u00a5{fmt(cost.total)}
+            ¥{fmt(cost.total)}
           </div>
         </div>
       </div>
@@ -911,7 +912,7 @@ function EnhancedItinerary({ city, route, prefs, hotelTier, printable }) {
     <div className={`bg-white rounded-2xl ${printable ? 'p-4' : 'p-4 glow-card'} mb-4 print-area`}>
       <div className="mb-3">
         <div className="text-xs text-sky-600 mb-1">行程概要</div>
-        <h2 className="text-xl font-bold">{city} \u00b7 {route.name}</h2>
+        <h2 className="text-xl font-bold">{city} · {route.name}</h2>
         <div className="text-xs text-slate-500 mt-1">{route.tagline}</div>
       </div>
 
@@ -919,7 +920,7 @@ function EnhancedItinerary({ city, route, prefs, hotelTier, printable }) {
         <div className="bg-slate-50 rounded-lg p-2"><span className="text-slate-400">天数 </span><b>{route.days}天</b></div>
         <div className="bg-slate-50 rounded-lg p-2"><span className="text-slate-400">同行 </span><b>{COMPANION_LABEL[prefs.companions]}</b></div>
         <div className="bg-slate-50 rounded-lg p-2"><span className="text-slate-400">出行 </span><b>{TRANSPORT_LABEL[prefs.transport]}</b></div>
-        <div className="bg-slate-50 rounded-lg p-2"><span className="text-slate-400">预算 </span><b>\u00a5{fmt(prefs.budget)}</b></div>
+        <div className="bg-slate-50 rounded-lg p-2"><span className="text-slate-400">预算 </span><b>¥{fmt(prefs.budget)}</b></div>
       </div>
 
       <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4">
@@ -927,9 +928,9 @@ function EnhancedItinerary({ city, route, prefs, hotelTier, printable }) {
         <div className="font-bold text-sm">{recommendedHotel.name}</div>
         <div className="flex items-center justify-between mt-1">
           <div className="text-xs text-slate-600">{recommendedHotel.loc}</div>
-          <div className="text-rose-500 font-bold text-sm">\u00a5{fmt(recommendedHotel.price)}/晚</div>
+          <div className="text-rose-500 font-bold text-sm">¥{fmt(recommendedHotel.price)}/晚</div>
         </div>
-        <div className="text-xs text-slate-500">{hotelTotalNights}晚 \u2248 \u00a5{fmt(hotelTotalCost)}</div>
+        <div className="text-xs text-slate-500">{hotelTotalNights}晚 ≈ ¥{fmt(hotelTotalCost)}</div>
       </div>
 
       <div className="space-y-3">
@@ -938,8 +939,8 @@ function EnhancedItinerary({ city, route, prefs, hotelTier, printable }) {
             <div className="flex items-center gap-2 mb-2">
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sky-500 to-indigo-500 text-white font-bold flex items-center justify-center text-sm flex-shrink-0">D{day.day}</div>
               <div className="flex-1">
-                <div className="font-bold text-sm">第{day.day}天 \u00b7 {day.theme}</div>
-                <div className="text-[11px] text-slate-500">{day.hours}h \u00b7 {dayDist.toFixed(1)}km \u00b7 \u00a5{dayCost}</div>
+                <div className="font-bold text-sm">第{day.day}天 · {day.theme}</div>
+                <div className="text-[11px] text-slate-500">{day.hours}h · {dayDist.toFixed(1)}km · ¥{dayCost}</div>
               </div>
             </div>
 
@@ -953,7 +954,7 @@ function EnhancedItinerary({ city, route, prefs, hotelTier, printable }) {
                         <div className="font-semibold text-sm">{it.name}</div>
                         {it.spot && (
                           <div className="text-[11px] text-slate-500">
-                            {it.spot.duration ? `${it.spot.duration}h \u00b7 ` : ''}门票 \u00a5{it.ticket}
+                            {it.spot.duration ? `${it.spot.duration}h · ` : ''}门票 ¥{it.ticket}
                           </div>
                         )}
                       </div>
@@ -965,7 +966,7 @@ function EnhancedItinerary({ city, route, prefs, hotelTier, printable }) {
                     <div key={i} className="flex items-start gap-2 ml-2 my-0.5 pl-3 border-l-2 border-dashed border-slate-300">
                       <div className="text-sm flex-shrink-0">{seg.icon}</div>
                       <div className="flex-1 text-[11px] text-slate-600">
-                        {seg.mode} \u00b7 {seg.time}min \u00b7 \u00a5{seg.cost}
+                        {seg.mode} · {seg.time}min · ¥{seg.cost}
                         {seg.tip && <span className="text-rose-500 ml-1">{seg.tip}</span>}
                       </div>
                     </div>
@@ -977,7 +978,7 @@ function EnhancedItinerary({ city, route, prefs, hotelTier, printable }) {
             {day.day < route.days && (
               <div className="mt-2 ml-2 pl-3 border-l-2 border-dashed border-amber-300">
                 <div className="text-[11px] text-amber-700">
-                  \uD83C\uDFE8 入住 {recommendedHotel.name} \u00b7 \u00a5{fmt(recommendedHotel.price)}/晚
+                  🏨 入住 {recommendedHotel.name} · ¥{fmt(recommendedHotel.price)}/晚
                 </div>
               </div>
             )}
@@ -988,8 +989,8 @@ function EnhancedItinerary({ city, route, prefs, hotelTier, printable }) {
       <div className="mt-4 grid grid-cols-2 gap-2">
         <div className="bg-sky-50 rounded-lg p-2 text-center"><div className="text-[11px] text-slate-500">总路程</div><div className="font-bold text-sky-700 text-sm">{totalDist.toFixed(1)}km</div></div>
         <div className="bg-emerald-50 rounded-lg p-2 text-center"><div className="text-[11px] text-slate-500">区间耗时</div><div className="font-bold text-emerald-700 text-sm">{Math.floor(totalTransitMin/60)}h{totalTransitMin%60}min</div></div>
-        <div className="bg-rose-50 rounded-lg p-2 text-center"><div className="text-[11px] text-slate-500">交通费</div><div className="font-bold text-rose-700 text-sm">\u00a5{fmt(totalTransitCost)}</div></div>
-        <div className="bg-amber-50 rounded-lg p-2 text-center"><div className="text-[11px] text-slate-500">门票</div><div className="font-bold text-amber-700 text-sm">\u00a5{fmt(totalTicket)}</div></div>
+        <div className="bg-rose-50 rounded-lg p-2 text-center"><div className="text-[11px] text-slate-500">交通费</div><div className="font-bold text-rose-700 text-sm">¥{fmt(totalTransitCost)}</div></div>
+        <div className="bg-amber-50 rounded-lg p-2 text-center"><div className="text-[11px] text-slate-500">门票</div><div className="font-bold text-amber-700 text-sm">¥{fmt(totalTicket)}</div></div>
       </div>
     </div>
   );
@@ -1004,12 +1005,12 @@ function MobileFinalPlan({ city, prefs, route, onRestart }) {
     <div className="px-4 py-4 pb-8">
       {/* 封面 */}
       <div className="bg-gradient-to-br from-sky-500 to-indigo-600 text-white rounded-2xl p-6 mb-4 text-center">
-        <div className="text-5xl mb-3">\u2708\uFE0F</div>
+        <div className="text-5xl mb-3">✈️</div>
         <div className="text-xs opacity-80 mb-1">TravelMind 智能定制</div>
         <h1 className="text-2xl font-bold mb-2">{city} {route.days}日之旅</h1>
         <p className="text-sm opacity-90 mb-4">{route.tagline}</p>
         <div className="flex gap-4 text-xs justify-center">
-          <span>\u00a5{fmt(prefs.budget)}预算</span>
+          <span>¥{fmt(prefs.budget)}预算</span>
           <span>{COMPANION_LABEL[prefs.companions]}</span>
           <span>{TRANSPORT_LABEL[prefs.transport]}</span>
         </div>
@@ -1026,7 +1027,7 @@ function MobileFinalPlan({ city, prefs, route, onRestart }) {
             <div key={s.name} className="flex gap-3 p-2.5 border border-slate-200 rounded-xl">
               <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-sm flex-shrink-0">{i+1}</div>
               <div className="flex-1 min-w-0">
-                <div className="font-semibold text-sm">{s.name} \u00b7 \u00a5{s.ticket}</div>
+                <div className="font-semibold text-sm">{s.name} · ¥{s.ticket}</div>
                 <div className="text-xs text-slate-500 mt-0.5 truncate">{s.intro}</div>
               </div>
             </div>
@@ -1047,7 +1048,7 @@ function MobileFinalPlan({ city, prefs, route, onRestart }) {
                 <div className="font-bold text-sm">{h.name}</div>
                 <div className="text-xs text-slate-500 mt-0.5">{h.loc}</div>
               </div>
-              <div className="text-rose-500 font-bold text-sm">\u00a5{fmt(h.price)}/晚</div>
+              <div className="text-rose-500 font-bold text-sm">¥{fmt(h.price)}/晚</div>
             </div>
           </div>
         ))}
@@ -1066,27 +1067,27 @@ function MobileFinalPlan({ city, prefs, route, onRestart }) {
           ].map((item, i) => (
             <div key={i} className="flex justify-between text-sm py-1.5 border-b border-slate-100 last:border-0">
               <span>{item.label}</span>
-              <span className="font-bold">\u00a5{fmt(item.val)}</span>
+              <span className="font-bold">¥{fmt(item.val)}</span>
             </div>
           ))}
         </div>
         <div className="mt-3 pt-3 border-t-2 border-sky-200 flex justify-between items-center">
           <span className="font-bold">总计预估</span>
-          <span className="text-2xl font-bold text-sky-600">\u00a5{fmt(cost.total)}</span>
+          <span className="text-2xl font-bold text-sky-600">¥{fmt(cost.total)}</span>
         </div>
         <div className="mt-2 flex justify-between text-sm text-pink-500">
           <span>购物预留（不计入）</span>
-          <span className="font-bold">\u00a5{fmt(cost.shopping)}</span>
+          <span className="font-bold">¥{fmt(cost.shopping)}</span>
         </div>
       </div>
 
       {/* 操作按钮 */}
       <div className="space-y-3 no-print">
         <button onClick={() => window.print()} className="w-full py-3.5 bg-slate-100 text-slate-700 font-semibold rounded-xl active:scale-[0.98] transition-transform min-h-[48px]">
-          \uD83D\uDCC4 打印/保存PDF
+          📄 打印/保存PDF
         </button>
         <button onClick={onRestart} className="w-full py-3.5 bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-semibold rounded-xl active:scale-[0.98] transition-transform min-h-[48px]">
-          \uD83D\uDD04 重新规划
+          🔄 重新规划
         </button>
       </div>
     </div>
@@ -1120,7 +1121,7 @@ function FullPlan({ city, prefs, routeKey, onRestart, scrollSection }) {
       <div className="bg-gradient-to-r from-sky-500 to-indigo-600 text-white rounded-2xl p-4 mb-4">
         <div className="text-xs opacity-80">已为你定制</div>
         <h1 className="text-xl font-bold mt-1">{route.name}</h1>
-        <p className="text-sm opacity-90 mt-1">{route.tagline} \u00b7 {route.days}天 \u00b7 {route.spots.length}景点</p>
+        <p className="text-sm opacity-90 mt-1">{route.tagline} · {route.days}天 · {route.spots.length}景点</p>
       </div>
 
       <EnhancedItinerary
@@ -1164,7 +1165,7 @@ function ProvinceDaysPicker({ province, onSelect }) {
   return (
     <div className="px-4 py-8 fade-in">
       <div className="text-center mb-6">
-        <div className="text-5xl mb-2">\uD83D\uDE97</div>
+        <div className="text-5xl mb-2">🚗</div>
         <h1 className="text-2xl font-bold">{pData.name}自驾游</h1>
         <p className="text-slate-500 text-sm mt-1">{pData.slogan}</p>
       </div>
@@ -1265,7 +1266,7 @@ function ProvinceDrivingPlan({ province, days, onRestart }) {
       <div className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-2xl p-4 mb-4">
         <div className="text-xs opacity-80">省级自驾路线</div>
         <h1 className="text-xl font-bold mt-1">{route.name}</h1>
-        <p className="text-sm opacity-90 mt-1">{route.cities.length}城 \u00b7 {totalKm}km</p>
+        <p className="text-sm opacity-90 mt-1">{route.cities.length}城 · {totalKm}km</p>
       </div>
 
       {/* 酒店档次 */}
@@ -1278,7 +1279,7 @@ function ProvinceDrivingPlan({ province, days, onRestart }) {
               <button key={tier} onClick={() => setHotelTier(tier)}
                 className={`p-2.5 rounded-xl text-center transition min-h-[52px] ${isActive ? 'ring-2 ring-emerald-500 bg-emerald-50' : 'bg-slate-50 active:bg-slate-100'}`}>
                 <div className={`font-bold text-xs ${isActive ? 'text-emerald-700' : 'text-slate-700'}`}>
-                  {tier === 'luxury' ? '\u2b50 高档' : tier === 'mid' ? '\uD83C\uDFE8 中档' : '\uD83D\uDCA1 经济'}
+                  {tier === 'luxury' ? '⭐ 高档' : tier === 'mid' ? '🏨 中档' : '💡 经济'}
                 </div>
               </button>
             );
@@ -1291,14 +1292,14 @@ function ProvinceDrivingPlan({ province, days, onRestart }) {
         <div className="bg-white rounded-lg p-2 glow-card"><span className="text-slate-400">行程 </span><b>{days}天</b></div>
         <div className="bg-white rounded-lg p-2 glow-card"><span className="text-slate-400">路程 </span><b>{totalKm}km</b></div>
         <div className="bg-white rounded-lg p-2 glow-card"><span className="text-slate-400">驾车 </span><b>{Math.floor(totalDriveMin/60)}h{totalDriveMin%60}min</b></div>
-        <div className="bg-white rounded-lg p-2 glow-card"><span className="text-slate-400">费用 </span><b>\u00a5{fmt(totalCost)}</b></div>
+        <div className="bg-white rounded-lg p-2 glow-card"><span className="text-slate-400">费用 </span><b>¥{fmt(totalCost)}</b></div>
       </div>
 
       {/* 城市标签 */}
       <div className="flex flex-wrap gap-1 mb-4">
         {route.cities.map((c, i) => (
           <React.Fragment key={c}>
-            {i > 0 && <span className="text-slate-400 mx-0.5 text-xs">\u2192</span>}
+            {i > 0 && <span className="text-slate-400 mx-0.5 text-xs">→</span>}
             <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs font-medium">{c}</span>
           </React.Fragment>
         ))}
@@ -1330,22 +1331,22 @@ function ProvinceDrivingPlan({ province, days, onRestart }) {
               <div className="p-3 flex items-center gap-2 active:bg-slate-50" onClick={() => toggleDay(day.day)}>
                 <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 text-white font-bold flex items-center justify-center text-sm flex-shrink-0">D{day.day}</div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-bold text-sm">第{day.day}天 \u00b7 {day.theme}</div>
-                  <div className="text-[11px] text-slate-500">{day.city} \u00b7 {day.hours}h</div>
+                  <div className="font-bold text-sm">第{day.day}天 · {day.theme}</div>
+                  <div className="text-[11px] text-slate-500">{day.city} · {day.hours}h</div>
                 </div>
-                <div className="text-slate-400 text-lg">{isExpanded ? '\u2303' : '\u2304'}</div>
+                <div className="text-slate-400 text-lg">{isExpanded ? '⌃' : '⌄'}</div>
               </div>
 
               {isExpanded && (
                 <div className="px-3 pb-3 fade-in">
                   {day.drive && day.drive.km > 0 && (
                     <div className="flex items-start gap-2 ml-2 mb-2 pl-3 border-l-2 border-dashed border-emerald-300">
-                      <span className="text-sm">\uD83D\uDE97</span>
+                      <span className="text-sm">🚗</span>
                       <div className="flex-1 text-xs">
                         <span className="font-semibold text-emerald-700">{day.drive.km}km</span>
-                        <span className="text-slate-500"> \u00b7 {driveHours}h{driveMinRem > 0 ? driveMinRem + 'min' : ''}</span>
-                        <span className="text-slate-500"> \u00b7 油费\u00a5{Math.round(day.drive.km * 0.65)} \u00b7 过路\u00a5{Math.round(day.drive.km * 0.4)}</span>
-                        {needRest && <span className="text-rose-500 block mt-0.5">\u26a0\ufe0f 途中需休息</span>}
+                        <span className="text-slate-500"> · {driveHours}h{driveMinRem > 0 ? driveMinRem + 'min' : ''}</span>
+                        <span className="text-slate-500"> · 油费¥{Math.round(day.drive.km * 0.65)} · 过路¥{Math.round(day.drive.km * 0.4)}</span>
+                        {needRest && <span className="text-rose-500 block mt-0.5">⚠️ 途中需休息</span>}
                       </div>
                     </div>
                   )}
@@ -1364,10 +1365,10 @@ function ProvinceDrivingPlan({ province, days, onRestart }) {
                     return (
                       <div className="ml-2 pl-3 border-l-2 border-dashed border-amber-300">
                         <div className="text-[11px] text-amber-700">
-                          \uD83C\uDFE8 {selHotel.name} \u00b7 \u00a5{selHotel.price}/晚
+                          🏨 {selHotel.name} · ¥{selHotel.price}/晚
                         </div>
                         {cityInfo.food && (
-                          <div className="text-[11px] text-slate-500 mt-0.5">\uD83C\uDF5C {cityInfo.food}</div>
+                          <div className="text-[11px] text-slate-500 mt-0.5">🍜 {cityInfo.food}</div>
                         )}
                       </div>
                     );
@@ -1376,7 +1377,7 @@ function ProvinceDrivingPlan({ province, days, onRestart }) {
                   {dayNavUrl && (
                     <a href={dayNavUrl} target="_blank" rel="noopener"
                       className="mt-2 inline-flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg text-xs font-medium active:bg-blue-100 min-h-[40px]">
-                      \uD83D\uDDFA\uFE0F 导航今日行程（{day.drive.km}km）
+                      🗺️ 导航今日行程（{day.drive.km}km）
                     </a>
                   )}
                 </div>
@@ -1390,14 +1391,14 @@ function ProvinceDrivingPlan({ province, days, onRestart }) {
       <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-4">
         <h3 className="font-bold mb-3">自驾费用预估</h3>
         <div className="grid grid-cols-2 gap-2 text-sm">
-          <div className="text-center bg-white rounded-lg p-2"><div className="text-[11px] text-slate-500">油费</div><div className="font-bold text-emerald-700">\u00a5{fmt(fuelCost)}</div></div>
-          <div className="text-center bg-white rounded-lg p-2"><div className="text-[11px] text-slate-500">过路费</div><div className="font-bold text-emerald-700">\u00a5{fmt(tollCost)}</div></div>
-          <div className="text-center bg-white rounded-lg p-2"><div className="text-[11px] text-slate-500">住宿({days-1}晚)</div><div className="font-bold text-emerald-700">\u00a5{fmt(hotelCost)}</div></div>
-          <div className="text-center bg-white rounded-lg p-2"><div className="text-[11px] text-slate-500">餐饮+门票</div><div className="font-bold text-emerald-700">\u00a5{fmt(mealCost + ticketCost)}</div></div>
+          <div className="text-center bg-white rounded-lg p-2"><div className="text-[11px] text-slate-500">油费</div><div className="font-bold text-emerald-700">¥{fmt(fuelCost)}</div></div>
+          <div className="text-center bg-white rounded-lg p-2"><div className="text-[11px] text-slate-500">过路费</div><div className="font-bold text-emerald-700">¥{fmt(tollCost)}</div></div>
+          <div className="text-center bg-white rounded-lg p-2"><div className="text-[11px] text-slate-500">住宿({days-1}晚)</div><div className="font-bold text-emerald-700">¥{fmt(hotelCost)}</div></div>
+          <div className="text-center bg-white rounded-lg p-2"><div className="text-[11px] text-slate-500">餐饮+门票</div><div className="font-bold text-emerald-700">¥{fmt(mealCost + ticketCost)}</div></div>
         </div>
         <div className="mt-3 pt-3 border-t border-emerald-200 text-center">
           <span className="text-sm text-slate-500">总计</span>
-          <span className="text-2xl font-bold text-emerald-700 ml-2">\u00a5{fmt(totalCost)}</span>
+          <span className="text-2xl font-bold text-emerald-700 ml-2">¥{fmt(totalCost)}</span>
         </div>
       </div>
 
@@ -1406,11 +1407,11 @@ function ProvinceDrivingPlan({ province, days, onRestart }) {
         <div className="flex gap-2">
           <a href={fullNavUrl} target="_blank" rel="noopener"
             className="flex-1 py-3 bg-gradient-to-r from-blue-500 to-blue-700 text-white font-bold rounded-xl text-center active:scale-[0.98] transition-transform min-h-[48px] flex items-center justify-center gap-1 text-sm">
-            \uD83D\uDDFA\uFE0F 一键导航全程
+            🗺️ 一键导航全程
           </a>
           <button onClick={onRestart}
             className="px-4 py-3 bg-white border-2 border-slate-200 text-slate-700 font-bold rounded-xl active:bg-slate-50 min-h-[48px] text-sm">
-            \uD83D\uDD04
+            🔄
           </button>
         </div>
       </div>
@@ -1491,8 +1492,8 @@ function App() {
       <BottomNav stage={stage} onNav={handleNav} />
 
       <footer className="border-t border-slate-200 py-4 mt-8 text-center text-xs text-slate-400 px-4">
-        <div>TravelMind \u00b7 AI旅游路线规划</div>
-        <div className="mt-1 text-[10px]">数据：高德POI \u00b7 互联网售票热度</div>
+        <div>TravelMind · AI旅游路线规划</div>
+        <div className="mt-1 text-[10px]">数据：高德POI · 互联网售票热度</div>
       </footer>
     </>
   );
