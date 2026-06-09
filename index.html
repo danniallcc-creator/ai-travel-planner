@@ -270,7 +270,11 @@ function Header({ onReset }) {
         <div className="flex items-center gap-3 cursor-pointer" onClick={onReset}>
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-white text-xl">✈️</div>
           <div>
-            <div className="font-bold text-lg text-slate-800">TravelMind</div>
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-lg text-sky-600">载堉视界</span>
+              <span className="text-slate-300">|</span>
+              <span className="font-bold text-lg text-slate-800">TravelMind</span>
+            </div>
             <div className="text-xs text-slate-500">AI旅游路线规划设计师</div>
           </div>
         </div>
@@ -1264,7 +1268,7 @@ function FinalPlanFlipbook({ city, prefs, route, startPoint, onRestart }) {
       content: (
         <div className="flex flex-col items-center justify-center h-full text-center bg-gradient-to-br from-sky-100 via-white to-indigo-100 p-12">
           <div className="text-7xl mb-4">✈️</div>
-          <div className="text-sm text-sky-600 mb-2">TravelMind 智能定制方案</div>
+          <div className="text-sm text-sky-600 mb-2">载堉视界 | TravelMind 智能定制方案</div>
           <h1 className="text-4xl font-bold mb-3">{city} {route.days}日{['','经典','小众','人文','自然'][['classic','niche','culture','nature'].indexOf(route.routeKey || 'classic')+1]}之旅</h1>
           <p className="text-slate-500 mb-6 max-w-md">{route.tagline}</p>
           <div className="flex gap-6 text-sm flex-wrap">
@@ -1834,7 +1838,7 @@ function App() {
       )}
 
       <footer className="border-t border-slate-200 py-6 mt-12 text-center text-sm text-slate-400">
-        <div>TravelMind · AI旅游路线规划设计师 · 第一期：中国大陆景点</div>
+        <div>载堉视界 | TravelMind · AI旅游路线规划设计师 · 第一期：中国大陆景点</div>
         <div className="mt-1 text-xs">数据来源：高德POI · 互联网售票热度 · 近3月搜索趋势</div>
       </footer>
     </>
