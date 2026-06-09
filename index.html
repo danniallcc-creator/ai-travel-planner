@@ -10,6 +10,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://webapi.amap.com/maps?v=2.0&key=ee15ad5ed2ed7cd9c78c79b6d6fd3f4f"></script>
 <script src="./data.js"></script>
+<script src="./data-provinces.js"></script>
 <style>
   body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; }
   .bg-gradient-hero { background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0c4a6e 100%); }
@@ -82,7 +83,26 @@ const { useState, useEffect, useRef, useMemo, useCallback } = React;
 const fmt = n => Number(n).toLocaleString('zh-CN');
 const stars = n => '★'.repeat(n) + '☆'.repeat(5-n);
 
-// 从对话文本提取目的地
+// 从对话文本提取目的地（支持省级自驾识别）
+function extractDestination(text) {
+  if (!text) return null;
+
+  // 1. 先检测省级自驾意图（优先级最高）
+  if (window.PROVINCE_DRIVING) {
+    for (const [prov, aliases] of Object.entries(window.PROVINCE_ALIASES || {})) {
+      const pattern = new RegExp(aliases.join('|'));
+      if (pattern.test(text) && (text.match(/自驾|环线|环游|全省|跨城|多城|省内|周游|穿越|环贵州|游遍|走遍|转一圈/) || text.match(/几个城市|多个.*城市|串.*城市/))) {
+        return { type: 'province', province: prov };
+      }
+    }
+  }
+
+  // 2. 普通城市匹配
+  const city = extractCity(text);
+  if (city) return { type: 'city', city };
+  return null;
+}
+
 function extractCity(text) {
   if (!text) return null;
   const cities = Object.keys(window.CITY_DATABASE);
@@ -103,6 +123,8 @@ function extractCity(text) {
   if (text.match(/青岛|崂山|泰山|曲阜|济南|山东|齐鲁|蓬莱/)) return '青岛';
   if (text.match(/厦门|鹭岛|鼓浪屿|土楼|武夷|泉州|福建|闽/)) return '厦门';
   if (text.match(/昆明|春城|大理|丽江|香格里拉|云南|滇|彩云之南|玉龙雪山|洱海/)) return '昆明';
+  // 省级回退（不带自驾关键词时，匹配为省会城市）
+  if (text.match(/贵州|黔|贵阳|甲秀楼|青岩|黔灵山/)) return null; // 让省级自驾优先捕获
   return null;
 }
 
@@ -201,7 +223,7 @@ function HomePage({ onSubmit }) {
   const [text, setText] = useState('');
   const placeholder = '我想去xxx地方旅游，请帮我做一个旅游规划';
 
-  const examples = ['我想去北京旅游5天', '帮我规划上海3日游', '成都美食人文路线', '杭州西湖文艺游', '西安兵马俑+古城墙'];
+  const examples = ['我想去北京旅游5天', '帮我规划上海3日游', '成都美食人文路线', '杭州西湖文艺游', '西安兵马俑+古城墙', '我想去贵州自驾游'];
 
   return (
     <div className="bg-gradient-hero text-white">
@@ -1297,13 +1319,247 @@ function FullPlan({ city, prefs, routeKey, onRestart }) {
   );
 }
 
+/* ============ 省级自驾游：天数选择 ============ */
+function ProvinceDaysPicker({ province, onSelect }) {
+  const pData = window.PROVINCE_DRIVING[province];
+  const [days, setDays] = useState(5);
+
+  return (
+    <div className="max-w-3xl mx-auto py-16 px-6 fade-in">
+      <div className="text-center mb-8">
+        <div className="text-6xl mb-3">🚗</div>
+        <h1 className="text-3xl font-bold">{pData.name}自驾游</h1>
+        <p className="text-slate-500 mt-2">{pData.slogan}</p>
+        <p className="text-sm text-slate-400 mt-1">{pData.overview}</p>
+      </div>
+
+      <div className="bg-white rounded-2xl glow-card p-8">
+        <h2 className="text-xl font-bold mb-4 text-center">你有几天旅游时间？</h2>
+        <div className="flex items-center justify-center gap-4 mb-6">
+          <span className="text-slate-500 text-sm">3天</span>
+          <input type="range" min="3" max="10" value={days} onChange={e => setDays(Number(e.target.value))}
+            className="flex-1 max-w-sm h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-500" />
+          <span className="text-slate-500 text-sm">10天</span>
+        </div>
+        <div className="text-center text-4xl font-bold text-sky-600 mb-4">{days} 天</div>
+
+        {/* 预览覆盖城市 */}
+        <div className="bg-slate-50 rounded-xl p-4 mb-6">
+          <div className="text-sm text-slate-500 mb-2">智能推荐覆盖城市：</div>
+          <div className="flex flex-wrap gap-2">
+            {(() => {
+              const route = window.generateDrivingRoute(province, days);
+              return route ? route.cities.map(c => (
+                <span key={c} className="px-3 py-1 bg-sky-100 text-sky-700 rounded-full text-sm font-medium">{c}</span>
+              )) : <span className="text-slate-400">计算中...</span>;
+            })()}
+          </div>
+        </div>
+
+        {/* 预设模板快捷入口 */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-6">
+          {[3, 5, 7, 10].map(d => (
+            <button key={d} onClick={() => setDays(d)}
+              className={`p-3 rounded-xl border text-sm font-medium transition ${days === d ? 'border-sky-500 bg-sky-50 text-sky-700' : 'border-slate-200 hover:bg-slate-50'}`}>
+              <div className="font-bold">{d}天</div>
+              <div className="text-xs text-slate-500 mt-0.5">
+                {d <= 3 ? '精华快游' : d <= 5 ? '经典环线' : d <= 7 ? '深度全景' : '全境壮游'}
+              </div>
+            </button>
+          ))}
+        </div>
+
+        <button onClick={() => onSelect(days)}
+          className="w-full py-4 bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold text-lg rounded-xl hover:opacity-90">
+          🗺️ 生成 {days} 日自驾路线
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ============ 省级自驾游：跨城路线方案 ============ */
+function ProvinceDrivingPlan({ province, days, onRestart }) {
+  const pData = window.PROVINCE_DRIVING[province];
+  const route = useMemo(() => window.generateDrivingRoute(province, days), [province, days]);
+
+  if (!route) return <div className="text-center py-20 text-slate-400">暂无路线数据</div>;
+
+  // 合计统计
+  let totalKm = 0, totalDriveMin = 0;
+  route.dayPlan.forEach(d => {
+    if (d.drive) { totalKm += d.drive.km; totalDriveMin += d.drive.minutes; }
+  });
+
+  // 费用估算
+  const fuelCost = Math.round(totalKm * 0.65);
+  const tollCost = Math.round(totalKm * 0.4);
+  const hotelPerNight = 380;
+  const hotelCost = hotelPerNight * (days - 1);
+  const mealCost = days * 150;
+  const ticketCost = days * 100;
+  const totalCost = fuelCost + tollCost + hotelCost + mealCost + ticketCost;
+
+  return (
+    <div className="max-w-5xl mx-auto py-8 px-6">
+      {/* 顶部banner */}
+      <div className="no-print bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-2xl p-6 mb-6">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <div className="text-sm opacity-80">🚗 省级自驾路线</div>
+            <h1 className="text-3xl font-bold mt-1">{route.name}</h1>
+            <p className="opacity-90 mt-1">{route.tagline} · {route.cities.length}城 · {totalKm}km</p>
+          </div>
+          <button onClick={onRestart} className="px-5 py-2.5 bg-white text-emerald-600 font-bold rounded-xl hover:opacity-90">
+            🔄 重新规划
+          </button>
+        </div>
+      </div>
+
+      {/* 打印区域：完整路线 */}
+      <div className="print-area bg-white rounded-2xl p-6 glow-card mb-6">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <div>
+            <div className="text-xs text-emerald-600 mb-1">🗺️ {pData.name}自驾路线图</div>
+            <h2 className="text-2xl font-bold">{route.name}</h2>
+            <div className="text-xs text-slate-500 mt-1">{route.tagline}</div>
+          </div>
+          <button onClick={() => window.print()} className="no-print px-4 py-2 text-sm bg-rose-500 text-white rounded-lg hover:bg-rose-600 font-semibold">
+            📄 一键打印 / 保存为 PDF
+          </button>
+        </div>
+
+        {/* 路线城市标签 */}
+        <div className="flex flex-wrap gap-1 mb-5">
+          {route.cities.map((c, i) => (
+            <React.Fragment key={c}>
+              {i > 0 && <span className="text-slate-400 mx-1">→</span>}
+              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs font-medium">{c}</span>
+            </React.Fragment>
+          ))}
+        </div>
+
+        {/* 概要统计 */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-5 text-xs">
+          <div className="bg-slate-50 rounded-lg p-2"><span className="text-slate-400">行程 </span><b>{days} 天</b></div>
+          <div className="bg-slate-50 rounded-lg p-2"><span className="text-slate-400">总路程 </span><b>{totalKm} km</b></div>
+          <div className="bg-slate-50 rounded-lg p-2"><span className="text-slate-400">驾车时间 </span><b>{Math.floor(totalDriveMin/60)}h{totalDriveMin%60}min</b></div>
+          <div className="bg-slate-50 rounded-lg p-2"><span className="text-slate-400">途经城市 </span><b>{route.cities.length} 城</b></div>
+          <div className="bg-slate-50 rounded-lg p-2"><span className="text-slate-400">预估总费 </span><b>¥{fmt(totalCost)}</b></div>
+        </div>
+
+        {/* 每日路线 */}
+        <div className="space-y-4">
+          {route.dayPlan.map((day) => {
+            const cityInfo = pData.cities[day.stayCity];
+            const driveHours = day.drive ? Math.floor(day.drive.minutes / 60) : 0;
+            const driveMinRem = day.drive ? day.drive.minutes % 60 : 0;
+            const needRest = day.drive && day.drive.minutes > 180;
+
+            return (
+              <div key={day.day} className="print-day border border-slate-200 rounded-xl p-4">
+                <div className="flex items-center gap-3 mb-3 flex-wrap">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 text-white font-bold flex items-center justify-center">D{day.day}</div>
+                  <div className="flex-1">
+                    <div className="font-bold text-base">第 {day.day} 天 · {day.theme}</div>
+                    <div className="text-xs text-slate-500">{day.city}</div>
+                  </div>
+                  <div className="text-right text-xs text-slate-500">
+                    <div>⏱ 全天约{day.hours}h</div>
+                  </div>
+                </div>
+
+                {/* 驾车段 */}
+                {day.drive && day.drive.km > 0 && (
+                  <div className="flex items-start gap-3 ml-3 mb-3 pl-4 border-l-2 border-dashed border-emerald-300">
+                    <div className="text-lg">🚗</div>
+                    <div className="flex-1 text-xs">
+                      <span className="font-semibold text-emerald-700">自驾 {day.drive.km}km</span>
+                      <span className="text-slate-500"> · {day.drive.route} · ⏱ {driveHours}h{driveMinRem > 0 ? driveMinRem + 'min' : ''}</span>
+                      <span className="text-slate-500"> · 油费 ≈ ¥{Math.round(day.drive.km * 0.65)} · 过路费 ≈ ¥{Math.round(day.drive.km * 0.4)}</span>
+                      {needRest && <span className="text-rose-500 ml-2">⚠️ 途中需安排服务区休息</span>}
+                    </div>
+                  </div>
+                )}
+
+                {/* 活动/景点 */}
+                <div className="space-y-1.5 mb-3">
+                  {day.activities.map((act, i) => (
+                    <div key={i} className="flex items-center gap-3 py-1">
+                      <div className="w-6 h-6 rounded-full bg-amber-100 text-amber-700 font-bold text-xs flex items-center justify-center flex-shrink-0">{i+1}</div>
+                      <div className="font-medium text-sm">{act}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* 当晚住宿 */}
+                {cityInfo && (
+                  <div className="ml-3 pl-4 border-l-2 border-dashed border-amber-300">
+                    <div className="flex items-center gap-2 text-xs text-amber-700">
+                      <span className="text-base">🏨</span>
+                      <span>当晚入住 <b>{cityInfo.hotel.name}</b> · ¥{cityInfo.hotel.price}/晚</span>
+                    </div>
+                    {cityInfo.food && (
+                      <div className="text-xs text-slate-500 ml-6 mt-0.5">🍜 推荐美食：{cityInfo.food}</div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* 费用预估 */}
+        <div className="mt-6 bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+          <h3 className="font-bold text-lg mb-3">💰 自驾费用预估</h3>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
+            <div className="text-center"><div className="text-slate-500">油费</div><div className="font-bold text-emerald-700">¥{fmt(fuelCost)}</div></div>
+            <div className="text-center"><div className="text-slate-500">过路费</div><div className="font-bold text-emerald-700">¥{fmt(tollCost)}</div></div>
+            <div className="text-center"><div className="text-slate-500">住宿({days-1}晚)</div><div className="font-bold text-emerald-700">¥{fmt(hotelCost)}</div></div>
+            <div className="text-center"><div className="text-slate-500">餐饮</div><div className="font-bold text-emerald-700">¥{fmt(mealCost)}</div></div>
+            <div className="text-center"><div className="text-slate-500">门票</div><div className="font-bold text-emerald-700">¥{fmt(ticketCost)}</div></div>
+          </div>
+          <div className="mt-3 pt-3 border-t border-emerald-200 text-center">
+            <span className="text-slate-500">总计预估：</span>
+            <span className="text-2xl font-bold text-emerald-700">¥{fmt(totalCost)}</span>
+            <span className="text-xs text-slate-400 ml-2">(不含购物/娱乐)</span>
+          </div>
+        </div>
+
+        <div className="mt-3 text-[11px] text-slate-400 text-center">
+          ℹ️ 路程/耗时基于高速公路估算 · 油费按0.65元/km · 过路费按0.4元/km · 实际以高德导航为准
+        </div>
+      </div>
+
+      {/* 导入高德地图 */}
+      <div className="no-print text-center py-6">
+        <button onClick={() => {
+          const waypoints = route.cities.slice(1, -1).map(c => pData.cities[c].coord.join(',')).join(';');
+          const origin = pData.cities[route.cities[0]].coord.join(',');
+          const dest = pData.cities[route.cities[route.cities.length-1]].coord.join(',');
+          const url = `https://uri.amap.com/navigation?from=${origin},${route.cities[0]}&to=${dest},${route.cities[route.cities.length-1]}&via=${waypoints}&mode=car&policy=1&coordinate=gaode`;
+          window.open(url, '_blank');
+        }} className="px-8 py-4 bg-gradient-to-r from-blue-500 to-blue-700 text-white font-bold text-lg rounded-2xl hover:opacity-90 mr-3">
+          🗺️ 一键导入高德地图导航
+        </button>
+        <button onClick={onRestart} className="px-8 py-4 bg-white border-2 border-slate-200 text-slate-700 font-bold text-lg rounded-2xl hover:bg-slate-50">
+          🔄 重新规划
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* ============ 主应用 ============ */
 function App() {
-  const [stage, setStage] = useState('home'); // home | collect | recommend | plan
+  const [stage, setStage] = useState('home'); // home | collect | recommend | plan | province-days | province-plan
   const [prompt, setPrompt] = useState('');
   const [city, setCity] = useState(null);
   const [prefs, setPrefs] = useState(null);
   const [routeKey, setRouteKey] = useState(null);
+  // 省级自驾模式
+  const [province, setProvince] = useState(null);
+  const [drivingDays, setDrivingDays] = useState(null);
 
   const reset = () => {
     setStage('home');
@@ -1311,6 +1567,8 @@ function App() {
     setCity(null);
     setPrefs(null);
     setRouteKey(null);
+    setProvince(null);
+    setDrivingDays(null);
   };
 
   return (
@@ -1319,8 +1577,14 @@ function App() {
       {stage === 'home' && (
         <HomePage onSubmit={(text) => {
           setPrompt(text);
-          setCity(extractCity(text));
-          setStage('collect');
+          const dest = extractDestination(text);
+          if (dest && dest.type === 'province') {
+            setProvince(dest.province);
+            setStage('province-days');
+          } else {
+            setCity(dest ? dest.city : extractCity(text));
+            setStage('collect');
+          }
         }} />
       )}
       {stage === 'collect' && (
@@ -1333,6 +1597,12 @@ function App() {
       )}
       {stage === 'plan' && (
         <FullPlan city={city} prefs={prefs} routeKey={routeKey} onRestart={reset} />
+      )}
+      {stage === 'province-days' && province && (
+        <ProvinceDaysPicker province={province} onSelect={(d) => { setDrivingDays(d); setStage('province-plan'); }} />
+      )}
+      {stage === 'province-plan' && province && drivingDays && (
+        <ProvinceDrivingPlan province={province} days={drivingDays} onRestart={reset} />
       )}
 
       <footer className="border-t border-slate-200 py-6 mt-12 text-center text-sm text-slate-400">
