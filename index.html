@@ -4,6 +4,14 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>AI旅游路线规划设计师 · TravelMind</title>
+<script>
+// 移动端自动跳转到手机版
+(function() {
+  if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && !location.search.includes('nomobile')) {
+    window.location.replace('./m/');
+  }
+})();
+</script>
 <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -1580,6 +1588,23 @@ function ProvinceDrivingPlan({ province, days, onRestart }) {
                     </div>
                   );
                 })()}
+
+                {/* 当日导航按钮 */}
+                {day.drive && day.drive.km > 0 && (() => {
+                  const fromCity = day.day === 1 ? pData.capital : route.dayPlan[day.day - 2].stayCity;
+                  const toCity = day.stayCity;
+                  const fromCoord = pData.cities[fromCity]?.coord;
+                  const toCoord = pData.cities[toCity]?.coord;
+                  if (!fromCoord || !toCoord) return null;
+                  const navUrl = `https://uri.amap.com/navigation?from=${fromCoord[0]},${fromCoord[1]},${encodeURIComponent(fromCity)}&to=${toCoord[0]},${toCoord[1]},${encodeURIComponent(toCity)}&mode=car&policy=1&src=travelmind&coordinate=gaode&callnative=1`;
+                  return (
+                    <div className="mt-2 ml-3">
+                      <a href={navUrl} target="_blank" rel="noopener" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-medium hover:bg-blue-100 transition">
+                        🗺️ 导航今日行程（{day.drive.km}km）
+                      </a>
+                    </div>
+                  );
+                })()}
               </div>
             );
           })}
@@ -1610,10 +1635,14 @@ function ProvinceDrivingPlan({ province, days, onRestart }) {
       {/* 导入高德地图 */}
       <div className="no-print text-center py-6">
         <button onClick={() => {
-          const waypoints = route.cities.slice(1, -1).map(c => pData.cities[c].coord.join(',')).join(';');
-          const origin = pData.cities[route.cities[0]].coord.join(',');
-          const dest = pData.cities[route.cities[route.cities.length-1]].coord.join(',');
-          const url = `https://uri.amap.com/navigation?from=${origin},${route.cities[0]}&to=${dest},${route.cities[route.cities.length-1]}&via=${waypoints}&mode=car&policy=1&coordinate=gaode`;
+          const cities = route.cities;
+          const origin = pData.cities[cities[0]].coord.join(',');
+          const dest = pData.cities[cities[cities.length-1]].coord.join(',');
+          const viaCities = cities.slice(1, -1);
+          const via = viaCities.map(c => pData.cities[c].coord.join(',') + ',' + encodeURIComponent(c)).join(';');
+          let url = `https://uri.amap.com/navigation?from=${origin},${encodeURIComponent(cities[0])}&to=${dest},${encodeURIComponent(cities[cities.length-1])}`;
+          if (via) url += `&via=${via}`;
+          url += `&mode=car&policy=1&src=travelmind&coordinate=gaode&callnative=1`;
           window.open(url, '_blank');
         }} className="px-8 py-4 bg-gradient-to-r from-blue-500 to-blue-700 text-white font-bold text-lg rounded-2xl hover:opacity-90 mr-3">
           🗺️ 一键导入高德地图导航

@@ -1,0 +1,1504 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<script>
+// UA检测：非移动设备跳转PC版
+(function() {
+  var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  if (!isMobile) {
+    window.location.href = '../';
+  }
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>AI旅游路线规划 · TravelMind</title>
+<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="../data.js"></script>
+<script src="../data-provinces.js"></script>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; font-size: 16px; }
+  .bg-gradient-hero { background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0c4a6e 100%); }
+  .glow-card { box-shadow: 0 4px 16px rgba(0,0,0,.08), 0 1px 4px rgba(0,0,0,.04); }
+  .typing-cursor::after { content: '|'; animation: blink 1s infinite; color: #60a5fa; }
+  @keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
+  .fade-in { animation: fadeIn .4s ease-out; }
+  @keyframes fadeIn { from {opacity:0;transform:translateY(8px)} to {opacity:1;transform:translateY(0)} }
+  .slide-in { animation: slideIn .3s ease-out; }
+  @keyframes slideIn { from {opacity:0;transform:translateX(-12px)} to {opacity:1;transform:translateX(0)} }
+  .star { color:#fbbf24; }
+  .star-empty { color:#e5e7eb; }
+  .route-classic { background: linear-gradient(135deg, #fef3c7, #fde68a); }
+  .route-niche { background: linear-gradient(135deg, #d1fae5, #a7f3d0); }
+  .route-culture { background: linear-gradient(135deg, #fee2e2, #fecaca); }
+  .route-nature { background: linear-gradient(135deg, #dbeafe, #bfdbfe); }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 16px); }
+  .nav-bar { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); }
+  /* 隐藏滚动条但保持可滚动 */
+  .scroll-tabs::-webkit-scrollbar { display: none; }
+  .scroll-tabs { -ms-overflow-style: none; scrollbar-width: none; }
+  /* 打印 */
+  .print-only { display: none; }
+  @media print {
+    @page { size: A4; margin: 12mm 10mm; }
+    html, body { background: #fff !important; }
+    body * { visibility: hidden !important; }
+    .print-area, .print-area * { visibility: visible !important; }
+    .print-area { position: absolute !important; top: 0 !important; left: 0 !important; width: 100% !important; padding: 0 !important; margin: 0 !important; box-shadow: none !important; background: #fff !important; color: #000 !important; }
+    .print-only { display: block !important; }
+    .no-print, .no-print * { display: none !important; }
+    .print-day { page-break-inside: avoid; break-inside: avoid; }
+  }
+</style>
+</head>
+<body class="bg-slate-50 min-h-screen pb-20">
+<div id="root"></div>
+
+<script type="text/babel" data-presets="env,react">
+const { useState, useEffect, useRef, useMemo, useCallback } = React;
+
+/* ============ 工具函数 ============ */
+const fmt = n => Number(n).toLocaleString('zh-CN');
+const stars = n => '\u2605'.repeat(n) + '\u2606'.repeat(5-n);
+
+function extractDestination(text) {
+  if (!text) return null;
+  if (window.PROVINCE_DRIVING) {
+    for (const [prov, aliases] of Object.entries(window.PROVINCE_ALIASES || {})) {
+      const pattern = new RegExp(aliases.join('|'));
+      if (pattern.test(text) && (text.match(/自驾|环线|环游|全省|跨城|多城|省内|周游|穿越|环\S{1,3}游|游遍|走遍|转一圈/) || text.match(/几个城市|多个.*城市|串.*城市/))) {
+        return { type: 'province', province: prov };
+      }
+    }
+  }
+  const city = extractCity(text);
+  if (city) return { type: 'city', city };
+  return null;
+}
+
+function extractCity(text) {
+  if (!text) return null;
+  const cities = Object.keys(window.CITY_DATABASE);
+  for (const c of cities) {
+    if (text.includes(c)) return c;
+  }
+  if (text.match(/帝都|北京|京城/)) return '北京';
+  if (text.match(/魔都|沪|上海|申城/)) return '上海';
+  if (text.match(/蓉|成都|天府|川A|四川/)) return '成都';
+  if (text.match(/杭州|杭城|临安|西湖|钱塘/)) return '杭州';
+  if (text.match(/西安|长安|古都|陕西/)) return '西安';
+  if (text.match(/太原|晋祠|山西|三晋/)) return '太原';
+  if (text.match(/广州|羊城|花城|穗|岭南|广东|珠三角/)) return '广州';
+  if (text.match(/南京|金陵|建康|秣陵|江宁|石头城/)) return '南京';
+  if (text.match(/苏州|姑苏|吴中|平江|拙政|江南水乡|江苏/)) return '苏州';
+  if (text.match(/青岛|崂山|泰山|曲阜|济南|山东|齐鲁|蓬莱/)) return '青岛';
+  if (text.match(/厦门|鹭岛|鼓浪屿|土楼|武夷|泉州|福建|闽/)) return '厦门';
+  if (text.match(/昆明|春城|大理|丽江|香格里拉|云南|滇|彩云之南|玉龙雪山|洱海/)) return '昆明';
+  if (text.match(/重庆|渝|山城|火锅|洪崖洞|磁器口|武隆|大足/)) return '重庆';
+  if (text.match(/长沙|星城|湘|橘子洲|岳麓|湖南|臭豆腐|茶颜悦色/)) return '长沙';
+  if (text.match(/南昌|豫章|洪都|滕王阁|英雄城|江西|赣/)) return '南昌';
+  if (text.match(/云冈石窟|悬空寺|华严寺|恒山|九龙壁|善化寺/)) return '大同';
+  if (text.match(/平遥古城|乔家大院|王家大院|绵山|张壁古堡|双林寺|镇国寺/)) return '晋中';
+  if (text.match(/五台山|雁门关|芦芽山|万年冰洞|忻州古城/)) return '忻州';
+  if (text.match(/壶口瀑布|尧庙|洪洞大槐树|广胜寺|陶寺遗址|乾坤湾/)) return '临汾';
+  if (text.match(/关帝庙|解州|盐湖|中国死海|鹳雀楼|普救寺|永乐宫|司马光/)) return '运城';
+  if (text.match(/太行山大峡谷|八泉峡|八路军纪念馆|通天峡|上党门|长治/)) return '长治';
+  if (text.match(/皇城相府|王莽岭|蟒河|锡崖沟|青莲寺|珏山/)) return '晋城';
+  if (text.match(/应县木塔|崇福寺|杀虎口|金沙滩|广武古城|朔州/)) return '朔州';
+  if (text.match(/碛口古镇|北武当山|庞泉沟|杏花村|卦山|玄中寺|吕梁/)) return '吕梁';
+  if (text.match(/天一阁|东钱湖|溪口|蒋氏故里|天童寺|象山|宁波/)) return '宁波';
+  if (text.match(/鲁迅故里|兰亭|东湖|沈园|安昌古镇|大禹陵|绍兴/)) return '绍兴';
+  if (text.match(/雁荡山|楠溪江|南麂列岛|泰顺廊桥|洞头|温州/)) return '温州';
+  if (text.match(/南浔古镇|莫干山|安吉竹海|下渚湖|湖州/)) return '湖州';
+  if (text.match(/南湖红船|乌镇|西塘|盐官|月河|嘉兴/)) return '嘉兴';
+  if (text.match(/双龙洞|诸葛八卦村|横店影视城|义乌|兰溪地下长河|金华/)) return '金华';
+  if (text.match(/江郎山|廿八都|龙游石窟|根宫佛国|仙霞关|衢州/)) return '衢州';
+  if (text.match(/天台山|国清寺|神仙居|括苍山|临海古城|台州/)) return '台州';
+  if (text.match(/普陀山|朱家尖|嵊泗列岛|东极岛|桃花岛|舟山/)) return '舟山';
+  if (text.match(/贵州|黔|贵阳|甲秀楼|青岩|黔灵山/)) return null;
+  return null;
+}
+
+function aiEnrich(spot) {
+  return {
+    bestTime: spot.duration > 4 ? '建议早7:30入园避开人流' : '上午或傍晚光线最佳',
+    avoidTime: '法定节假日10:00-15:00人流高峰',
+    aiTip: `根据近30天3万+游客评价，${spot.name}的核心体验时长约${spot.duration}小时。`
+  };
+}
+
+const isMainlandChina = (city) => true;
+
+function calcRouteCost(prefs, route, city) {
+  const { budget, companions, transport, preference } = prefs;
+  const days = route.days;
+  const trans = window.CITY_DATABASE[city].transport;
+  let ticketCost = 0;
+  const allSpots = [
+    ...window.CITY_DATABASE[city].attractions.mustSee,
+    ...window.CITY_DATABASE[city].attractions.secondary,
+    ...window.CITY_DATABASE[city].attractions.hidden
+  ];
+  route.spots.forEach(name => {
+    const sp = allSpots.find(s => s.name === name || name.includes(s.name));
+    if (sp) ticketCost += sp.ticket || 0;
+  });
+  const transportDaily = transport === 'rentcar' ? (350 + trans.driving.tollPerDay + trans.driving.fuelPer100km*1.5 + trans.driving.parking)
+                        : transport === 'owncar' ? (trans.driving.tollPerDay + trans.driving.fuelPer100km*1.5 + trans.driving.parking)
+                        : trans.publicTransit.metroDailyCost + trans.publicTransit.taxiAvg*2;
+  const transportTotal = transportDaily * days;
+  const mealMultiplier = companions === 'both' ? 1.4 : (companions === 'kids' || companions === 'elder' ? 1.2 : 1);
+  const mealDaily = 200 * mealMultiplier;
+  const mealTotal = mealDaily * days;
+  const hotelTier = budget < 3000 ? 'budget' : budget < 6000 ? 'mid' : 'luxury';
+  const hotelData = window.CITY_DATABASE[city].accommodation[hotelTier][0];
+  const hotelTotal = hotelData.price * (days - 1);
+  const flightCost = 1200;
+  const shopping = Math.max(500, budget * 0.1);
+  return {
+    flight: flightCost, hotel: hotelTotal, food: mealTotal, transport: transportTotal,
+    ticket: ticketCost, shopping,
+    total: flightCost + hotelTotal + mealTotal + transportTotal + ticketCost,
+    hotelTier, hotelDaily: hotelData.price, days
+  };
+}
+
+function haversineKm(a, b) {
+  if (!a || !b) return 0;
+  const R = 6371;
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(b[1] - a[1]);
+  const dLng = toRad(b[0] - a[0]);
+  const lat1 = toRad(a[1]);
+  const lat2 = toRad(b[1]);
+  const h = Math.sin(dLat/2)**2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng/2)**2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+function calcTransitSegment(km, transportMode) {
+  const isDriving = transportMode === 'rentcar' || transportMode === 'owncar';
+  if (isDriving) {
+    const minutes = Math.max(8, Math.round(km / 30 * 60));
+    const fuelOrPower = transportMode === 'rentcar' ? Math.round(km * 0.65) : Math.round(km * 0.55);
+    const tolls = km > 30 ? Math.round(km * 0.45) : 0;
+    const parking = km > 0 ? 15 : 0;
+    return {
+      icon: '\uD83D\uDE97', mode: transportMode === 'rentcar' ? '租车自驾' : '自驾',
+      time: minutes, cost: fuelOrPower + tolls + parking,
+      detail: `${km.toFixed(1)}km \u00b7 油费 \u00a5${fuelOrPower}` + (tolls ? ` \u00b7 过路费 \u00a5${tolls}` : '') + ` \u00b7 停车 \u00a5${parking}`,
+      tip: km / 30 > 3 ? '\u26a0\ufe0f 连续驾驶将超3小时，途中安排休息区' : null
+    };
+  } else {
+    let icon, mode, cost, speed, detail;
+    if (km < 1.5) {
+      icon = '\uD83D\uDEB6'; mode = '步行'; cost = 0; speed = 4;
+      detail = `${km.toFixed(1)}km \u00b7 步行可达`;
+    } else if (km < 8) {
+      icon = '\uD83D\uDE87'; mode = '地铁'; cost = Math.min(8, 3 + Math.floor(km / 2)); speed = 22;
+      detail = `${km.toFixed(1)}km \u00b7 地铁约 ${Math.ceil(km / 1.2)} 站 \u00b7 票价 \u00a5${cost}`;
+    } else if (km < 25) {
+      icon = '\uD83D\uDE96'; mode = '出租车/网约车'; cost = Math.round(13 + km * 2.4); speed = 28;
+      detail = `${km.toFixed(1)}km \u00b7 出租车起步价+里程费 \u2248 \u00a5${cost}`;
+    } else if (km < 80) {
+      icon = '\uD83D\uDE8C'; mode = '景区直通巴士/长途车'; cost = Math.round(km * 1.4); speed = 50;
+      detail = `${km.toFixed(1)}km \u00b7 长途/景区直通车 \u2248 \u00a5${cost}`;
+    } else {
+      icon = '\uD83D\uDE84'; mode = '高铁/动车'; cost = Math.round(km * 0.55); speed = 200;
+      detail = `${km.toFixed(1)}km \u00b7 高铁二等座 \u2248 \u00a5${cost}`;
+    }
+    const minutes = Math.max(5, Math.round(km / speed * 60));
+    return { icon, mode, time: minutes, cost, detail, tip: null };
+  }
+}
+
+function resolveSpotByName(city, spotName) {
+  if (!spotName || !city) return null;
+  const a = window.CITY_DATABASE[city]?.attractions;
+  if (!a) return null;
+  const norm = s => String(s).replace(/[（(].+?[）)]/g, '').replace(/[·\.\s]/g, '');
+  const target = norm(spotName);
+  for (const tier of ['mustSee', 'secondary', 'hidden']) {
+    for (const s of a[tier]) {
+      const sn = norm(s.name);
+      if (sn === target || sn.includes(target) || target.includes(sn)) return s;
+    }
+  }
+  return null;
+}
+
+const COMPANION_LABEL = { none: '纯成人', kids: '带小孩', elder: '带老人', both: '老人小孩同行' };
+const TRANSPORT_LABEL = { public: '公共交通', rentcar: '租车自驾', owncar: '自驾', mixed: '混合方式' };
+const PREF_LABEL = { hot: '热门优先', niche: '小众优先', both: '热门+小众兼顾' };
+
+/* ============ 底部导航栏 ============ */
+function BottomNav({ stage, onNav }) {
+  const tabs = [
+    { key: 'home', icon: '\uD83C\uDFE0', label: '首页' },
+    { key: 'route', icon: '\uD83D\uDDFA\uFE0F', label: '路线' },
+    { key: 'spots', icon: '\uD83C\uDFD4\uFE0F', label: '景点' },
+    { key: 'hotel', icon: '\uD83C\uDFE8', label: '住宿' },
+    { key: 'budget', icon: '\uD83D\uDCB0', label: '预算' }
+  ];
+  const isActive = (key) => {
+    if (key === 'home') return stage === 'home';
+    if (key === 'route') return stage === 'plan' || stage === 'recommend';
+    if (key === 'spots') return stage === 'plan';
+    if (key === 'hotel') return stage === 'plan';
+    if (key === 'budget') return stage === 'plan';
+    return false;
+  };
+  return (
+    <nav className="no-print fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50 nav-bar">
+      <div className="flex items-center justify-around">
+        {tabs.map(t => (
+          <button key={t.key} onClick={() => onNav(t.key)}
+            className={`flex flex-col items-center py-2 px-3 min-w-[56px] active:scale-95 transition-transform ${isActive(t.key) ? 'text-sky-600' : 'text-slate-400'}`}>
+            <span className="text-xl">{t.icon}</span>
+            <span className="text-[11px] mt-0.5 font-medium">{t.label}</span>
+          </button>
+        ))}
+      </div>
+    </nav>
+  );
+}
+
+/* ============ 首页 ============ */
+function HomePage({ onSubmit }) {
+  const [text, setText] = useState('');
+  const examples = ['北京5日游', '成都美食之旅', '贵州自驾游'];
+  const hotCities = ['北京','上海','成都','杭州','西安','重庆','长沙','昆明','广州','南京','苏州','青岛','厦门'];
+
+  return (
+    <div className="bg-gradient-hero text-white min-h-screen">
+      <div className="px-4 pt-12 pb-8 text-center">
+        <div className="inline-block mb-4 px-3 py-1 rounded-full bg-white/10 backdrop-blur text-xs border border-white/20">
+          AI智能规划 \u00b7 一键导入高德
+        </div>
+        <h1 className="text-3xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-white via-sky-200 to-blue-300">
+          让AI为你设计旅程
+        </h1>
+        <p className="text-base text-slate-300 mb-8">告诉我你想去哪里</p>
+
+        <div className="bg-white/95 backdrop-blur-xl rounded-2xl p-3 shadow-2xl">
+          <div className="flex items-center gap-2 px-2">
+            <span className="text-xl">\uD83D\uDCAD</span>
+            <input
+              value={text}
+              onChange={e => setText(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && text.trim() && onSubmit(text)}
+              placeholder="我想去...旅游"
+              className="flex-1 bg-transparent text-slate-800 text-base outline-none placeholder-slate-400 py-2"
+            />
+          </div>
+          <button
+            onClick={() => text.trim() && onSubmit(text)}
+            disabled={!text.trim()}
+            className="w-full mt-2 py-3.5 bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-semibold rounded-xl active:scale-[0.98] disabled:opacity-30 transition-transform text-base">
+            开始规划
+          </button>
+        </div>
+
+        <div className="mt-5">
+          <div className="text-xs text-slate-400 mb-2">试试这些：</div>
+          <div className="flex flex-wrap gap-2 justify-center mb-6">
+            {examples.map(ex => (
+              <button key={ex} onClick={() => onSubmit(ex)} className="text-sm px-3 py-2 rounded-full bg-white/5 active:bg-white/15 border border-white/10 transition min-h-[44px] flex items-center">
+                {ex}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <div className="text-xs text-slate-400 mb-2">热门城市</div>
+          <div className="flex flex-wrap gap-2 justify-center">
+            {hotCities.map(c => (
+              <button key={c} onClick={() => onSubmit(`我想去${c}旅游`)}
+                className="px-3 py-2 rounded-lg bg-white/5 active:bg-white/15 border border-white/10 text-sm min-h-[44px] transition">
+                {c}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============ 信息收集 ============ */
+function NumberInput({ cur, next }) {
+  const [val, setVal] = useState('');
+  const MAX = 10000000;
+  const sanitize = (raw) => {
+    const digits = String(raw).replace(/[^\d]/g, '');
+    if (!digits) return '';
+    let n = parseInt(digits, 10);
+    if (Number.isNaN(n)) return '';
+    if (n > MAX) n = MAX;
+    return String(n);
+  };
+  const submit = () => { if (val) next(Number(val)); };
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <input type="number" placeholder={cur.placeholder} autoFocus
+          value={val}
+          min={cur.min || 0}
+          max={cur.max || MAX}
+          inputMode="numeric"
+          onChange={e => setVal(sanitize(e.target.value))}
+          onBlur={e => setVal(sanitize(e.target.value))}
+          onKeyDown={e => e.key === 'Enter' && submit()}
+          className="flex-1 px-4 py-3.5 border-2 border-slate-200 rounded-xl text-lg focus:border-sky-500 outline-none min-h-[48px]" />
+        <span className="text-slate-500 text-sm">{cur.suffix}</span>
+      </div>
+      <button onClick={submit} disabled={!val}
+        className="w-full py-3.5 bg-sky-500 text-white rounded-xl font-semibold active:bg-sky-600 disabled:opacity-30 min-h-[48px] text-base">
+        下一步
+      </button>
+    </div>
+  );
+}
+
+function InfoCollector({ city, prompt, onComplete }) {
+  const [step, setStep] = useState(0);
+  const [answers, setAnswers] = useState({});
+  const [showCityPicker, setShowCityPicker] = useState(!city);
+  const [pickedCity, setPickedCity] = useState(city);
+  const Q = window.PREFERENCE_QUESTIONS;
+  const cur = Q[step];
+
+  if (showCityPicker) {
+    return (
+      <div className="px-4 py-6">
+        <div className="bg-white rounded-2xl p-5 glow-card">
+          <div className="text-sm text-sky-600 mb-2">支持城市</div>
+          <h2 className="text-xl font-bold mb-2">请选择想去的城市</h2>
+          <p className="text-slate-500 text-sm mb-4">你的输入：{prompt}</p>
+          <div className="grid grid-cols-2 gap-2">
+            {Object.keys(window.CITY_DATABASE).map(c => (
+              <button key={c} onClick={() => { setPickedCity(c); setShowCityPicker(false); }}
+                className="p-3 rounded-xl border-2 border-slate-200 active:border-sky-500 active:bg-sky-50 transition text-left min-h-[56px]">
+                <div className="font-bold">{c}</div>
+                <div className="text-[11px] text-slate-500">{window.CITY_DATABASE[c].bestSeason}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const next = (val) => {
+    const newAns = { ...answers, [cur.id]: val };
+    setAnswers(newAns);
+    if (step + 1 < Q.length) {
+      setStep(step + 1);
+    } else {
+      onComplete(pickedCity, newAns);
+    }
+  };
+
+  return (
+    <div className="px-4 py-6">
+      <div className="flex items-center gap-1.5 mb-4">
+        {Q.map((q, i) => (
+          <div key={q.id} className={`flex-1 h-1.5 rounded-full ${i <= step ? 'bg-sky-500' : 'bg-slate-200'}`} />
+        ))}
+      </div>
+      <div className="text-xs text-sky-600 mb-2">
+        第 {step+1}/{Q.length} 步 \u00b7 {pickedCity}
+      </div>
+      <div className="bg-white rounded-2xl p-5 glow-card slide-in" key={step}>
+        <div className="text-4xl mb-3">{cur.icon}</div>
+        <h2 className="text-xl font-bold mb-1">{cur.q}</h2>
+        <p className="text-slate-500 text-sm mb-5">这将影响AI给你的最终方案</p>
+        {cur.type === 'number' && <NumberInput cur={cur} next={next} />}
+        {cur.type === 'select' && (
+          <div className="space-y-2">
+            {cur.options.map(opt => (
+              <button key={opt.value} onClick={() => next(opt.value)}
+                className="w-full p-4 text-left rounded-xl border-2 border-slate-200 active:border-sky-500 active:bg-sky-50 transition min-h-[52px]">
+                <div className="font-semibold">{opt.label}</div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      {step > 0 && (
+        <button onClick={() => setStep(step-1)} className="mt-3 text-slate-500 text-sm py-2 min-h-[44px]">
+          \u2190 上一步
+        </button>
+      )}
+    </div>
+  );
+}
+
+/* ============ 路线推荐 ============ */
+function RouteRecommendation({ city, prefs, onSelect }) {
+  const [active, setActive] = useState(null);
+  const cityData = window.CITY_DATABASE[city];
+  const RT = window.ROUTE_TYPES;
+
+  useEffect(() => {
+    if (prefs.preference === 'hot') setActive('classic');
+    else if (prefs.preference === 'niche') setActive('niche');
+    else setActive('classic');
+  }, [prefs.preference]);
+
+  return (
+    <div className="px-4 py-6">
+      <div className="mb-4">
+        <div className="text-xs text-sky-600">选择路线类型</div>
+        <h1 className="text-2xl font-bold mt-1">{city}精选路线</h1>
+        <p className="text-slate-500 text-sm mt-1">预算 \u00a5{fmt(prefs.budget)}</p>
+      </div>
+
+      <div className="space-y-3 mb-6">
+        {Object.entries(RT).map(([key, t]) => {
+          const route = cityData.routes[key];
+          const isActive = active === key;
+          return (
+            <button key={key} onClick={() => setActive(key)}
+              className={`w-full p-4 rounded-2xl text-left transition border-2 ${isActive ? 'border-sky-500 ring-2 ring-sky-100 bg-white' : 'border-transparent route-' + key}`}>
+              <div className="flex items-center gap-3">
+                <div className="text-3xl">{t.icon}</div>
+                <div className="flex-1">
+                  <div className="font-bold text-lg">{t.label}</div>
+                  <div className="text-xs text-slate-600 mt-0.5">{route.tagline}</div>
+                </div>
+                <div className="text-right text-xs text-slate-500">
+                  <div>{route.days}天</div>
+                  <div>{route.spots.length}景点</div>
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {active && <RouteDetail city={city} routeKey={active} prefs={prefs} onConfirm={() => onSelect(active)} />}
+    </div>
+  );
+}
+
+/* ============ 路线详情 ============ */
+function RouteDetail({ city, routeKey, prefs, onConfirm }) {
+  const cityData = window.CITY_DATABASE[city];
+  const route = cityData.routes[routeKey];
+
+  const importToAmap = () => {
+    const allSpots = [
+      ...cityData.attractions.mustSee,
+      ...cityData.attractions.secondary,
+      ...cityData.attractions.hidden
+    ];
+    const first = allSpots.find(s => route.spots.includes(s.name));
+    const last = [...route.spots].reverse().map(n => allSpots.find(s => s.name === n)).find(Boolean);
+    if (!first || !last) return alert('正在准备景点坐标...');
+    const url = `https://uri.amap.com/navigation?from=${first.coord[0]},${first.coord[1]},${encodeURIComponent(first.name)}&to=${last.coord[0]},${last.coord[1]},${encodeURIComponent(last.name)}&via=${route.spots.slice(1,-1).map(n => {
+      const s = allSpots.find(x => x.name === n);
+      return s ? `${s.coord[0]},${s.coord[1]},${encodeURIComponent(s.name)}` : '';
+    }).filter(Boolean).join(';')}&mode=car&policy=1&src=travelmind&coordinate=gaode&callnative=1`;
+    window.open(url, '_blank');
+  };
+
+  // 高德地图查看链接
+  const viewInAmap = () => {
+    const center = cityData.coord;
+    const url = `https://uri.amap.com/marker?position=${center[0]},${center[1]}&name=${encodeURIComponent(city)}&src=travelmind&coordinate=gaode&callnative=1`;
+    window.open(url, '_blank');
+  };
+
+  return (
+    <div className="bg-white rounded-2xl p-4 glow-card fade-in">
+      <div className="mb-4">
+        <h2 className="text-xl font-bold">{route.name}</h2>
+        <p className="text-slate-500 text-sm mt-1">{route.tagline}</p>
+      </div>
+
+      <button onClick={onConfirm} className="w-full py-3.5 bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-semibold rounded-xl active:scale-[0.98] transition-transform mb-4 min-h-[48px]">
+        确认这条路线
+      </button>
+
+      <div className="space-y-2 mb-4">
+        {route.dayPlan.map(d => (
+          <div key={d.day} className="border border-slate-200 rounded-xl p-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-sm">D{d.day}</div>
+                <div className="font-semibold text-sm">{d.theme}</div>
+              </div>
+              <div className="text-xs text-slate-500">{d.hours}h</div>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {d.list.map((s, i) => (
+                <span key={i} className="text-xs px-2 py-1 rounded-md bg-slate-100 text-slate-700">{i+1}.{s}</span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="space-y-2">
+        <button onClick={viewInAmap} className="w-full py-3 bg-slate-100 text-slate-700 font-semibold rounded-xl active:scale-[0.98] transition-transform flex items-center justify-center gap-2 min-h-[48px] text-sm">
+          \uD83D\uDDFA\uFE0F 在高德地图中查看
+        </button>
+        <button onClick={importToAmap} className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-cyan-600 text-white font-semibold rounded-xl active:scale-[0.98] transition-transform flex items-center justify-center gap-2 min-h-[48px]">
+          \uD83D\uDDFA\uFE0F 一键导入高德导航
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ============ 景点攻略 ============ */
+function AttractionsGuide({ city }) {
+  const [tab, setTab] = useState('mustSee');
+  const data = window.CITY_DATABASE[city].attractions;
+  const tabs = [
+    { key: 'mustSee', label: '必玩景点', icon: '\u2b50' },
+    { key: 'secondary', label: '次要景点', icon: '\uD83D\uDD38' },
+    { key: 'hidden', label: '小众推荐', icon: '\uD83C\uDF1F' }
+  ];
+
+  return (
+    <div className="bg-white rounded-2xl p-4 glow-card mb-4">
+      <h2 className="text-xl font-bold mb-3">{city}景点攻略</h2>
+
+      <div className="flex gap-1 mb-4 overflow-x-auto scroll-tabs pb-1">
+        {tabs.map(t => (
+          <button key={t.key} onClick={() => setTab(t.key)}
+            className={`px-4 py-2.5 rounded-xl font-semibold text-sm whitespace-nowrap transition min-h-[44px] flex items-center gap-1 ${tab === t.key ? 'bg-sky-500 text-white' : 'bg-slate-100 text-slate-600 active:bg-slate-200'}`}>
+            {t.icon} {t.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="space-y-3">
+        {data[tab].map((spot, i) => (
+          <SpotCard key={spot.name} spot={spot} idx={i} kind={tab} city={city} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SpotCard({ spot, idx, kind, city }) {
+  const [expanded, setExpanded] = useState(false);
+  const ai = aiEnrich(spot);
+  const cityData = window.CITY_DATABASE[city];
+
+  // 高德导航链接
+  const navCarUrl = `https://uri.amap.com/navigation?to=${spot.coord[0]},${spot.coord[1]},${encodeURIComponent(spot.name)}&mode=car&policy=1&src=travelmind&coordinate=gaode&callnative=1`;
+  const navBusUrl = `https://uri.amap.com/navigation?to=${spot.coord[0]},${spot.coord[1]},${encodeURIComponent(spot.name)}&mode=bus&policy=1&src=travelmind&coordinate=gaode&callnative=1`;
+
+  return (
+    <div className={`border rounded-xl overflow-hidden transition ${expanded ? 'border-sky-400 ring-2 ring-sky-100' : 'border-slate-200'}`}>
+      <div className="p-3" onClick={() => setExpanded(!expanded)}>
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="font-bold">#{spot.rank} {spot.name}</div>
+              {kind === 'hidden' && <span className="text-[11px] px-2 py-0.5 bg-rose-100 text-rose-700 rounded">{spot.trend}</span>}
+              {spot.ticket > 0 && <span className="text-[11px] px-2 py-0.5 bg-amber-100 text-amber-700 rounded">\u00a5{spot.ticket}</span>}
+            </div>
+            <p className="text-sm text-slate-600 mt-1 line-clamp-2">{spot.intro}</p>
+          </div>
+          <div className="text-slate-400 text-lg flex-shrink-0">{expanded ? '\u2303' : '\u2304'}</div>
+        </div>
+        <div className="mt-2 flex items-center gap-3 text-xs text-slate-500">
+          <span>{spot.duration}h</span>
+          <span className="truncate">{ai.bestTime}</span>
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="px-3 pb-3 pt-2 border-t border-slate-100 space-y-3 fade-in">
+          <div className="flex gap-2">
+            <a href={navCarUrl} target="_blank" rel="noopener"
+              className="flex-1 py-2.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-medium text-center active:bg-blue-100 min-h-[44px] flex items-center justify-center gap-1">
+              \uD83D\uDE97 驾车导航
+            </a>
+            <a href={navBusUrl} target="_blank" rel="noopener"
+              className="flex-1 py-2.5 bg-green-50 text-green-600 rounded-lg text-xs font-medium text-center active:bg-green-100 min-h-[44px] flex items-center justify-center gap-1">
+              \uD83D\uDE87 公交导航
+            </a>
+          </div>
+
+          <div>
+            <div className="font-semibold text-sm mb-2">\uD83D\uDCF8 打卡点</div>
+            <div className="space-y-1.5">
+              {spot.photoSpots.map((p, i) => (
+                <div key={i} className="p-2 rounded-lg bg-slate-50">
+                  <div className="text-sm font-medium">{p.name}</div>
+                  <div className="text-xs text-slate-600 mt-0.5">{p.pose}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div className="font-semibold text-sm mb-2">\uD83C\uDF5C 周边美食</div>
+            <div className="space-y-1">
+              {spot.food.map((f, i) => (
+                <div key={i} className="flex items-center gap-2 text-sm">
+                  <span className="star w-16 text-xs">{stars(f.star)}</span>
+                  <span className="font-medium">{f.name}</span>
+                  <span className="text-xs text-slate-500 truncate">{f.desc}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="text-xs text-slate-500 bg-amber-50 p-2 rounded-lg">\uD83D\uDCA1 {spot.tip}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============ 出行攻略 ============ */
+function TransportGuide({ city, prefs, route }) {
+  const trans = window.CITY_DATABASE[city].transport;
+  const days = route.days;
+  const allSpots = [
+    ...window.CITY_DATABASE[city].attractions.mustSee,
+    ...window.CITY_DATABASE[city].attractions.secondary,
+    ...window.CITY_DATABASE[city].attractions.hidden
+  ];
+
+  const segments = [];
+  for (let i = 1; i < route.spots.length; i++) {
+    const a = allSpots.find(s => s.name === route.spots[i-1]);
+    const b = allSpots.find(s => s.name === route.spots[i]);
+    if (a && b) {
+      const dist = Math.sqrt(Math.pow(a.coord[0]-b.coord[0], 2) + Math.pow(a.coord[1]-b.coord[1], 2)) * 111;
+      segments.push({ from: a.name, to: b.name, dist: dist.toFixed(1), drive: Math.ceil(dist/40*60), transit: Math.ceil(dist/25*60) });
+    }
+  }
+
+  const publicCost = days * (trans.publicTransit.metroDailyCost + trans.publicTransit.taxiAvg * 2);
+  const drivingCost = days * (trans.driving.tollPerDay + trans.driving.fuelPer100km * 1.5 + trans.driving.parking);
+  const carRentDaily = 350;
+  const hasKids = prefs.companions === 'kids' || prefs.companions === 'both';
+  const hasElder = prefs.companions === 'elder' || prefs.companions === 'both';
+  const useDriving = prefs.transport === 'rentcar' || prefs.transport === 'owncar';
+
+  return (
+    <div className="bg-white rounded-2xl p-4 glow-card mb-4">
+      <h2 className="text-xl font-bold mb-3">出行攻略</h2>
+
+      <div className="mb-4">
+        <div className="font-semibold text-sm mb-2">节点间距</div>
+        <div className="space-y-1.5">
+          {segments.slice(0, 6).map((s, i) => (
+            <div key={i} className="flex items-center gap-2 text-sm bg-slate-50 rounded-lg p-2">
+              <span className="text-slate-400 text-xs">{i+1}</span>
+              <span className="flex-1 truncate text-xs">{s.from} \u2192 {s.to}</span>
+              <span className="text-[11px] text-slate-500">{s.dist}km</span>
+              <span className="text-[11px] text-slate-500">{s.drive}min</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <div className="border border-slate-200 rounded-xl p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="font-bold">\uD83D\uDE87 公共交通</div>
+            {prefs.transport === 'public' && <span className="text-[11px] px-2 py-0.5 bg-sky-100 text-sky-700 rounded">推荐</span>}
+          </div>
+          <div className="space-y-1.5 text-sm">
+            <div className="flex justify-between"><span className="text-slate-600">市内地铁/日</span><span>\u00a5{trans.publicTransit.metroDailyCost}</span></div>
+            <div className="flex justify-between"><span className="text-slate-600">出租车/日</span><span>\u00a5{trans.publicTransit.taxiAvg*2}</span></div>
+            <div className="flex justify-between font-bold pt-2 border-t border-slate-100"><span>{days}天预估</span><span className="text-sky-600">\u00a5{fmt(publicCost)}</span></div>
+          </div>
+          {(hasKids || hasElder) && (
+            <div className="mt-2 text-xs bg-amber-50 p-2 rounded text-amber-800">
+              {hasKids && '小孩'}{hasKids && hasElder && '、'}{hasElder && '老人'}同行建议多打车
+            </div>
+          )}
+        </div>
+
+        <div className="border border-slate-200 rounded-xl p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="font-bold">\uD83D\uDE97 {prefs.transport === 'rentcar' ? '租车自驾' : '自驾'}</div>
+            {useDriving && <span className="text-[11px] px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded">推荐</span>}
+          </div>
+          <div className="space-y-1.5 text-sm">
+            {prefs.transport === 'rentcar' && <div className="flex justify-between"><span className="text-slate-600">租车/日</span><span>\u00a5{carRentDaily}</span></div>}
+            <div className="flex justify-between"><span className="text-slate-600">过路费/日</span><span>\u00a5{trans.driving.tollPerDay}</span></div>
+            <div className="flex justify-between"><span className="text-slate-600">油费(100km)</span><span>\u00a5{trans.driving.fuelPer100km}</span></div>
+            <div className="flex justify-between font-bold pt-2 border-t border-slate-100">
+              <span>{days}天预估</span>
+              <span className="text-emerald-600">\u00a5{fmt(drivingCost + (prefs.transport === 'rentcar' ? carRentDaily * days : 0))}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="border border-slate-200 rounded-xl p-4">
+          <div className="font-bold mb-2">\u2708\uFE0F 往返大交通</div>
+          <div className="grid grid-cols-3 gap-2 text-sm">
+            <div className="p-2 rounded bg-slate-50 text-center">
+              <div className="text-slate-500 text-[11px]">机票</div>
+              <div className="font-bold text-sm">\u00a5800-2200</div>
+            </div>
+            <div className="p-2 rounded bg-slate-50 text-center">
+              <div className="text-slate-500 text-[11px]">高铁</div>
+              <div className="font-bold text-sm">\u00a5300-1500</div>
+            </div>
+            <div className="p-2 rounded bg-slate-50 text-center">
+              <div className="text-slate-500 text-[11px]">火车</div>
+              <div className="font-bold text-sm">\u00a580-500</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============ 住宿推荐 ============ */
+function AccommodationGuide({ city, prefs, route }) {
+  const acc = window.CITY_DATABASE[city].accommodation;
+  const tier = prefs.budget < 3000 ? 'budget' : prefs.budget < 6000 ? 'mid' : 'luxury';
+  const [activeTier, setActiveTier] = useState(tier);
+
+  const tierConfig = [
+    { key: 'luxury', label: '高档', icon: '\uD83D\uDC51' },
+    { key: 'mid', label: '中档', icon: '\u2B50' },
+    { key: 'budget', label: '经济', icon: '\uD83D\uDCBC' }
+  ];
+
+  return (
+    <div className="bg-white rounded-2xl p-4 glow-card mb-4">
+      <h2 className="text-xl font-bold mb-3">住宿攻略</h2>
+
+      <div className="flex gap-2 mb-4">
+        {tierConfig.map(t => (
+          <button key={t.key} onClick={() => setActiveTier(t.key)}
+            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition min-h-[44px] ${activeTier === t.key ? 'bg-sky-500 text-white' : 'bg-slate-100 text-slate-600 active:bg-slate-200'}`}>
+            {t.icon} {t.label}
+            {tier === t.key && <span className="ml-1 text-[10px]">(推荐)</span>}
+          </button>
+        ))}
+      </div>
+
+      <div className="space-y-3">
+        {acc[activeTier].map((h, i) => (
+          <div key={i} className="border border-slate-200 rounded-xl p-3">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="font-semibold">{h.name}</div>
+                <div className="text-xs text-slate-500 mt-1">{h.loc}</div>
+                <div className="text-xs text-slate-500 mt-1">{h.perks}</div>
+              </div>
+              <div className="text-right flex-shrink-0 ml-2">
+                <div className="font-bold text-rose-500">\u00a5{fmt(h.price)}</div>
+                <div className="text-[11px] text-slate-400">/晚</div>
+              </div>
+            </div>
+            <div className="text-xs text-slate-500 mt-1">{stars(h.star)}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-3 space-y-1.5 text-xs text-slate-500">
+        <div className="p-2 bg-slate-50 rounded">\uD83D\uDEE1\uFE0F 选择24h前台连锁品牌</div>
+        <div className="p-2 bg-slate-50 rounded">\uD83D\uDED2 500m内有便利店/超市</div>
+      </div>
+    </div>
+  );
+}
+
+/* ============ 费用预算 ============ */
+function BudgetTable({ city, prefs, route }) {
+  const cost = calcRouteCost(prefs, route, city);
+  const overBudget = cost.total > prefs.budget;
+
+  const items = [
+    { key: 'flight', label: '往返机票', val: cost.flight, color: 'sky' },
+    { key: 'hotel', label: `住宿(${cost.days-1}晚)`, val: cost.hotel, color: 'amber' },
+    { key: 'food', label: '吃饭', val: cost.food, color: 'rose' },
+    { key: 'transport', label: '本地出行', val: cost.transport, color: 'emerald' },
+    { key: 'ticket', label: '景点门票', val: cost.ticket, color: 'purple' }
+  ];
+
+  return (
+    <div className="bg-white rounded-2xl p-4 glow-card mb-4">
+      <h2 className="text-xl font-bold mb-3">费用预算</h2>
+
+      <div className="space-y-2 mb-4">
+        {items.map(it => {
+          const pct = (it.val / cost.total * 100).toFixed(1);
+          return (
+            <div key={it.key}>
+              <div className="flex justify-between text-sm mb-1">
+                <span className="text-slate-600">{it.label}</span>
+                <span className="font-bold">\u00a5{fmt(it.val)}</span>
+              </div>
+              <div className="bg-slate-100 rounded-full h-4 relative overflow-hidden">
+                <div className={`absolute inset-y-0 left-0 bg-${it.color}-400 rounded-full`} style={{ width: pct + '%' }}></div>
+                <div className="absolute inset-0 flex items-center px-3 text-[11px]">
+                  <span className="font-medium">{pct}%</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mb-4 p-3 rounded-xl bg-pink-50 border border-pink-200">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">\uD83D\uDECD\uFE0F 购物预留</span>
+          <span className="font-bold text-pink-600">\u00a5{fmt(cost.shopping)}</span>
+        </div>
+        <div className="text-[11px] text-slate-500 mt-1">不计入总费用</div>
+      </div>
+
+      <div className={`p-4 rounded-xl ${overBudget ? 'bg-rose-50 border border-rose-200' : 'bg-emerald-50 border border-emerald-200'}`}>
+        <div className="text-sm text-slate-600 mb-1">
+          {overBudget ? '预算超出，建议调整' : '在预算范围内'}
+        </div>
+        <div className="flex items-end justify-between">
+          <div className="text-xs text-slate-500">你的预算 \u00a5{fmt(prefs.budget)}</div>
+          <div className={`text-3xl font-bold ${overBudget ? 'text-rose-500' : 'text-emerald-600'}`}>
+            \u00a5{fmt(cost.total)}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============ 整合行程概要 ============ */
+function EnhancedItinerary({ city, route, prefs, hotelTier, printable }) {
+  const cityData = window.CITY_DATABASE[city];
+  const tier = hotelTier || (prefs.budget < 3000 ? 'budget' : prefs.budget < 6000 ? 'mid' : 'luxury');
+  const tierLabel = { luxury: '高档', mid: '中档', budget: '经济型' }[tier];
+  const recommendedHotel = cityData.accommodation[tier][0];
+
+  let totalDist = 0, totalTransitMin = 0, totalTransitCost = 0, totalTicket = 0;
+  const dayBlocks = route.dayPlan.map(day => {
+    const items = [];
+    let dayDist = 0, dayMin = 0, dayCost = 0, dayTicket = 0;
+    day.list.forEach((spotName, idx) => {
+      const spot = resolveSpotByName(city, spotName);
+      const ticket = spot?.ticket || 0;
+      dayTicket += ticket;
+      items.push({ kind: 'spot', name: spotName, spot, ticket });
+      const nextName = day.list[idx + 1];
+      if (nextName) {
+        const nextSpot = resolveSpotByName(city, nextName);
+        const km = (spot && nextSpot) ? haversineKm(spot.coord, nextSpot.coord) : 3.5;
+        const seg = calcTransitSegment(km, prefs.transport);
+        dayDist += km; dayMin += seg.time; dayCost += seg.cost;
+        items.push({ kind: 'transit', km, seg });
+      }
+    });
+    totalDist += dayDist; totalTransitMin += dayMin; totalTransitCost += dayCost; totalTicket += dayTicket;
+    return { day, items, dayDist, dayMin, dayCost, dayTicket };
+  });
+
+  const hotelTotalNights = Math.max(0, route.days - 1);
+  const hotelTotalCost = recommendedHotel.price * hotelTotalNights;
+
+  return (
+    <div className={`bg-white rounded-2xl ${printable ? 'p-4' : 'p-4 glow-card'} mb-4 print-area`}>
+      <div className="mb-3">
+        <div className="text-xs text-sky-600 mb-1">行程概要</div>
+        <h2 className="text-xl font-bold">{city} \u00b7 {route.name}</h2>
+        <div className="text-xs text-slate-500 mt-1">{route.tagline}</div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-1.5 mb-4 text-xs">
+        <div className="bg-slate-50 rounded-lg p-2"><span className="text-slate-400">天数 </span><b>{route.days}天</b></div>
+        <div className="bg-slate-50 rounded-lg p-2"><span className="text-slate-400">同行 </span><b>{COMPANION_LABEL[prefs.companions]}</b></div>
+        <div className="bg-slate-50 rounded-lg p-2"><span className="text-slate-400">出行 </span><b>{TRANSPORT_LABEL[prefs.transport]}</b></div>
+        <div className="bg-slate-50 rounded-lg p-2"><span className="text-slate-400">预算 </span><b>\u00a5{fmt(prefs.budget)}</b></div>
+      </div>
+
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4">
+        <div className="text-xs text-amber-700 mb-0.5">推荐住宿（{tierLabel}）</div>
+        <div className="font-bold text-sm">{recommendedHotel.name}</div>
+        <div className="flex items-center justify-between mt-1">
+          <div className="text-xs text-slate-600">{recommendedHotel.loc}</div>
+          <div className="text-rose-500 font-bold text-sm">\u00a5{fmt(recommendedHotel.price)}/晚</div>
+        </div>
+        <div className="text-xs text-slate-500">{hotelTotalNights}晚 \u2248 \u00a5{fmt(hotelTotalCost)}</div>
+      </div>
+
+      <div className="space-y-3">
+        {dayBlocks.map(({ day, items, dayDist, dayMin, dayCost, dayTicket }) => (
+          <div key={day.day} className="print-day border border-slate-200 rounded-xl p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sky-500 to-indigo-500 text-white font-bold flex items-center justify-center text-sm flex-shrink-0">D{day.day}</div>
+              <div className="flex-1">
+                <div className="font-bold text-sm">第{day.day}天 \u00b7 {day.theme}</div>
+                <div className="text-[11px] text-slate-500">{day.hours}h \u00b7 {dayDist.toFixed(1)}km \u00b7 \u00a5{dayCost}</div>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              {items.map((it, i) => {
+                if (it.kind === 'spot') {
+                  return (
+                    <div key={i} className="flex items-start gap-2 py-1">
+                      <div className="w-6 h-6 rounded-full bg-sky-100 text-sky-700 font-bold text-[10px] flex items-center justify-center flex-shrink-0 mt-0.5">{Math.floor(i/2)+1}</div>
+                      <div className="flex-1">
+                        <div className="font-semibold text-sm">{it.name}</div>
+                        {it.spot && (
+                          <div className="text-[11px] text-slate-500">
+                            {it.spot.duration ? `${it.spot.duration}h \u00b7 ` : ''}门票 \u00a5{it.ticket}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                } else {
+                  const { seg } = it;
+                  return (
+                    <div key={i} className="flex items-start gap-2 ml-2 my-0.5 pl-3 border-l-2 border-dashed border-slate-300">
+                      <div className="text-sm flex-shrink-0">{seg.icon}</div>
+                      <div className="flex-1 text-[11px] text-slate-600">
+                        {seg.mode} \u00b7 {seg.time}min \u00b7 \u00a5{seg.cost}
+                        {seg.tip && <span className="text-rose-500 ml-1">{seg.tip}</span>}
+                      </div>
+                    </div>
+                  );
+                }
+              })}
+            </div>
+
+            {day.day < route.days && (
+              <div className="mt-2 ml-2 pl-3 border-l-2 border-dashed border-amber-300">
+                <div className="text-[11px] text-amber-700">
+                  \uD83C\uDFE8 入住 {recommendedHotel.name} \u00b7 \u00a5{fmt(recommendedHotel.price)}/晚
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <div className="bg-sky-50 rounded-lg p-2 text-center"><div className="text-[11px] text-slate-500">总路程</div><div className="font-bold text-sky-700 text-sm">{totalDist.toFixed(1)}km</div></div>
+        <div className="bg-emerald-50 rounded-lg p-2 text-center"><div className="text-[11px] text-slate-500">区间耗时</div><div className="font-bold text-emerald-700 text-sm">{Math.floor(totalTransitMin/60)}h{totalTransitMin%60}min</div></div>
+        <div className="bg-rose-50 rounded-lg p-2 text-center"><div className="text-[11px] text-slate-500">交通费</div><div className="font-bold text-rose-700 text-sm">\u00a5{fmt(totalTransitCost)}</div></div>
+        <div className="bg-amber-50 rounded-lg p-2 text-center"><div className="text-[11px] text-slate-500">门票</div><div className="font-bold text-amber-700 text-sm">\u00a5{fmt(totalTicket)}</div></div>
+      </div>
+    </div>
+  );
+}
+
+/* ============ 最终方案（长页面，非翻页） ============ */
+function MobileFinalPlan({ city, prefs, route, onRestart }) {
+  const cost = calcRouteCost(prefs, route, city);
+  const cityData = window.CITY_DATABASE[city];
+
+  return (
+    <div className="px-4 py-4 pb-8">
+      {/* 封面 */}
+      <div className="bg-gradient-to-br from-sky-500 to-indigo-600 text-white rounded-2xl p-6 mb-4 text-center">
+        <div className="text-5xl mb-3">\u2708\uFE0F</div>
+        <div className="text-xs opacity-80 mb-1">TravelMind 智能定制</div>
+        <h1 className="text-2xl font-bold mb-2">{city} {route.days}日之旅</h1>
+        <p className="text-sm opacity-90 mb-4">{route.tagline}</p>
+        <div className="flex gap-4 text-xs justify-center">
+          <span>\u00a5{fmt(prefs.budget)}预算</span>
+          <span>{COMPANION_LABEL[prefs.companions]}</span>
+          <span>{TRANSPORT_LABEL[prefs.transport]}</span>
+        </div>
+      </div>
+
+      {/* 行程概要 */}
+      <EnhancedItinerary city={city} route={route} prefs={prefs} hotelTier={cost.hotelTier} />
+
+      {/* 景点列表 */}
+      <div className="bg-white rounded-2xl p-4 glow-card mb-4">
+        <h2 className="text-xl font-bold mb-3">必玩景点 TOP 5</h2>
+        <div className="space-y-2">
+          {cityData.attractions.mustSee.slice(0, 5).map((s, i) => (
+            <div key={s.name} className="flex gap-3 p-2.5 border border-slate-200 rounded-xl">
+              <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-sm flex-shrink-0">{i+1}</div>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-sm">{s.name} \u00b7 \u00a5{s.ticket}</div>
+                <div className="text-xs text-slate-500 mt-0.5 truncate">{s.intro}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 住宿 */}
+      <div className="bg-white rounded-2xl p-4 glow-card mb-4">
+        <h2 className="text-xl font-bold mb-3">推荐住宿</h2>
+        <div className="text-xs text-slate-500 mb-3">
+          {cost.hotelTier === 'luxury' ? '高档' : cost.hotelTier === 'mid' ? '中档' : '经济型'}推荐
+        </div>
+        {cityData.accommodation[cost.hotelTier].map((h, i) => (
+          <div key={i} className="p-3 border border-slate-200 rounded-xl mb-2">
+            <div className="flex justify-between items-start">
+              <div>
+                <div className="font-bold text-sm">{h.name}</div>
+                <div className="text-xs text-slate-500 mt-0.5">{h.loc}</div>
+              </div>
+              <div className="text-rose-500 font-bold text-sm">\u00a5{fmt(h.price)}/晚</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* 预算 */}
+      <div className="bg-white rounded-2xl p-4 glow-card mb-4">
+        <h2 className="text-xl font-bold mb-3">完整预算</h2>
+        <div className="space-y-2">
+          {[
+            { label: '往返机票', val: cost.flight },
+            { label: `住宿(${cost.days-1}晚)`, val: cost.hotel },
+            { label: '吃饭', val: cost.food },
+            { label: '本地出行', val: cost.transport },
+            { label: '景点门票', val: cost.ticket }
+          ].map((item, i) => (
+            <div key={i} className="flex justify-between text-sm py-1.5 border-b border-slate-100 last:border-0">
+              <span>{item.label}</span>
+              <span className="font-bold">\u00a5{fmt(item.val)}</span>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 pt-3 border-t-2 border-sky-200 flex justify-between items-center">
+          <span className="font-bold">总计预估</span>
+          <span className="text-2xl font-bold text-sky-600">\u00a5{fmt(cost.total)}</span>
+        </div>
+        <div className="mt-2 flex justify-between text-sm text-pink-500">
+          <span>购物预留（不计入）</span>
+          <span className="font-bold">\u00a5{fmt(cost.shopping)}</span>
+        </div>
+      </div>
+
+      {/* 操作按钮 */}
+      <div className="space-y-3 no-print">
+        <button onClick={() => window.print()} className="w-full py-3.5 bg-slate-100 text-slate-700 font-semibold rounded-xl active:scale-[0.98] transition-transform min-h-[48px]">
+          \uD83D\uDCC4 打印/保存PDF
+        </button>
+        <button onClick={onRestart} className="w-full py-3.5 bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-semibold rounded-xl active:scale-[0.98] transition-transform min-h-[48px]">
+          \uD83D\uDD04 重新规划
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ============ 完整方案展示页 ============ */
+function FullPlan({ city, prefs, routeKey, onRestart, scrollSection }) {
+  const route = { ...window.CITY_DATABASE[city].routes[routeKey], routeKey };
+  const [showFinal, setShowFinal] = useState(false);
+  const spotsRef = useRef(null);
+  const hotelRef = useRef(null);
+  const budgetRef = useRef(null);
+
+  useEffect(() => {
+    if (scrollSection === 'spots' && spotsRef.current) {
+      spotsRef.current.scrollIntoView({ behavior: 'smooth' });
+    } else if (scrollSection === 'hotel' && hotelRef.current) {
+      hotelRef.current.scrollIntoView({ behavior: 'smooth' });
+    } else if (scrollSection === 'budget' && budgetRef.current) {
+      budgetRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [scrollSection]);
+
+  if (showFinal) {
+    return <MobileFinalPlan city={city} prefs={prefs} route={route} onRestart={onRestart} />;
+  }
+
+  return (
+    <div className="px-4 py-4">
+      <div className="bg-gradient-to-r from-sky-500 to-indigo-600 text-white rounded-2xl p-4 mb-4">
+        <div className="text-xs opacity-80">已为你定制</div>
+        <h1 className="text-xl font-bold mt-1">{route.name}</h1>
+        <p className="text-sm opacity-90 mt-1">{route.tagline} \u00b7 {route.days}天 \u00b7 {route.spots.length}景点</p>
+      </div>
+
+      <EnhancedItinerary
+        city={city}
+        route={route}
+        prefs={prefs}
+        hotelTier={prefs.budget < 3000 ? 'budget' : prefs.budget < 6000 ? 'mid' : 'luxury'}
+      />
+
+      <div ref={spotsRef}>
+        <AttractionsGuide city={city} />
+      </div>
+
+      <TransportGuide city={city} prefs={prefs} route={route} />
+
+      <div ref={hotelRef}>
+        <AccommodationGuide city={city} prefs={prefs} route={route} />
+      </div>
+
+      <div ref={budgetRef}>
+        <BudgetTable city={city} prefs={prefs} route={route} />
+      </div>
+
+      <div className="space-y-3 py-4 no-print">
+        <button onClick={() => setShowFinal(true)} className="w-full py-3.5 bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold rounded-xl active:scale-[0.98] transition-transform min-h-[48px]">
+          查看完整方案
+        </button>
+        <button onClick={onRestart} className="w-full py-3.5 bg-white border-2 border-slate-200 text-slate-700 font-bold rounded-xl active:bg-slate-50 min-h-[48px]">
+          重新规划
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ============ 省级自驾游：天数选择 ============ */
+function ProvinceDaysPicker({ province, onSelect }) {
+  const pData = window.PROVINCE_DRIVING[province];
+  const [days, setDays] = useState(5);
+
+  return (
+    <div className="px-4 py-8 fade-in">
+      <div className="text-center mb-6">
+        <div className="text-5xl mb-2">\uD83D\uDE97</div>
+        <h1 className="text-2xl font-bold">{pData.name}自驾游</h1>
+        <p className="text-slate-500 text-sm mt-1">{pData.slogan}</p>
+      </div>
+
+      <div className="bg-white rounded-2xl glow-card p-5">
+        <h2 className="text-lg font-bold mb-4 text-center">你有几天时间？</h2>
+
+        <div className="mb-4">
+          <input type="range" min="3" max="10" value={days} onChange={e => setDays(Number(e.target.value))}
+            className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-500" />
+          <div className="flex justify-between text-xs text-slate-500 mt-1">
+            <span>3天</span><span>10天</span>
+          </div>
+        </div>
+
+        <div className="text-center text-4xl font-bold text-sky-600 mb-4">{days} 天</div>
+
+        <div className="bg-slate-50 rounded-xl p-3 mb-4">
+          <div className="text-xs text-slate-500 mb-2">覆盖城市：</div>
+          <div className="flex flex-wrap gap-1.5">
+            {(() => {
+              const route = window.generateDrivingRoute(province, days);
+              return route ? route.cities.map(c => (
+                <span key={c} className="px-2 py-1 bg-sky-100 text-sky-700 rounded-full text-xs font-medium">{c}</span>
+              )) : <span className="text-slate-400 text-xs">计算中...</span>;
+            })()}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          {[3, 5, 7, 10].map(d => (
+            <button key={d} onClick={() => setDays(d)}
+              className={`p-3 rounded-xl border text-sm font-medium transition min-h-[52px] ${days === d ? 'border-sky-500 bg-sky-50 text-sky-700' : 'border-slate-200 active:bg-slate-50'}`}>
+              <div className="font-bold">{d}天</div>
+              <div className="text-xs text-slate-500 mt-0.5">
+                {d <= 3 ? '精华快游' : d <= 5 ? '经典环线' : d <= 7 ? '深度全景' : '全境壮游'}
+              </div>
+            </button>
+          ))}
+        </div>
+
+        <button onClick={() => onSelect(days)}
+          className="w-full py-3.5 bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold rounded-xl active:scale-[0.98] transition-transform min-h-[48px]">
+          生成 {days} 日自驾路线
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ============ 省级自驾游方案 ============ */
+function ProvinceDrivingPlan({ province, days, onRestart }) {
+  const pData = window.PROVINCE_DRIVING[province];
+  const route = useMemo(() => window.generateDrivingRoute(province, days), [province, days]);
+  const [hotelTier, setHotelTier] = useState('mid');
+  const [expandedDays, setExpandedDays] = useState({});
+  const tierLabels = { luxury: '高档', mid: '中档', budget: '经济' };
+
+  if (!route) return <div className="text-center py-20 text-slate-400">暂无路线数据</div>;
+
+  let totalKm = 0, totalDriveMin = 0;
+  route.dayPlan.forEach(d => {
+    if (d.drive) { totalKm += d.drive.km; totalDriveMin += d.drive.minutes; }
+  });
+
+  const fuelCost = Math.round(totalKm * 0.65);
+  const tollCost = Math.round(totalKm * 0.4);
+  const hotelNights = Math.max(0, days - 1);
+  const hotelCost = route.dayPlan.slice(0, hotelNights).reduce((sum, day) => {
+    const ci = pData.cities[day.stayCity];
+    const h = ci?.hotels?.[hotelTier] || ci?.hotels?.mid;
+    return sum + (h ? h.price : 380);
+  }, 0);
+  const mealCost = days * 150;
+  const ticketCost = days * 100;
+  const totalCost = fuelCost + tollCost + hotelCost + mealCost + ticketCost;
+
+  const toggleDay = (day) => {
+    setExpandedDays(prev => ({ ...prev, [day]: !prev[day] }));
+  };
+
+  // 全程导航
+  const fullNavUrl = (() => {
+    const cities = route.cities;
+    const origin = pData.cities[cities[0]].coord.join(',');
+    const dest = pData.cities[cities[cities.length-1]].coord.join(',');
+    const viaCities = cities.slice(1, -1);
+    const via = viaCities.map(c => pData.cities[c].coord.join(',') + ',' + encodeURIComponent(c)).join(';');
+    let url = `https://uri.amap.com/navigation?from=${origin},${encodeURIComponent(cities[0])}&to=${dest},${encodeURIComponent(cities[cities.length-1])}`;
+    if (via) url += `&via=${via}`;
+    url += `&mode=car&policy=1&src=travelmind&coordinate=gaode&callnative=1`;
+    return url;
+  })();
+
+  return (
+    <div className="px-4 py-4 pb-24">
+      {/* 顶部banner */}
+      <div className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-2xl p-4 mb-4">
+        <div className="text-xs opacity-80">省级自驾路线</div>
+        <h1 className="text-xl font-bold mt-1">{route.name}</h1>
+        <p className="text-sm opacity-90 mt-1">{route.cities.length}城 \u00b7 {totalKm}km</p>
+      </div>
+
+      {/* 酒店档次 */}
+      <div className="bg-white rounded-2xl p-4 mb-4 glow-card">
+        <div className="text-sm text-slate-600 mb-2">住宿档次（{hotelNights}晚）</div>
+        <div className="grid grid-cols-3 gap-2">
+          {['luxury', 'mid', 'budget'].map(tier => {
+            const isActive = hotelTier === tier;
+            return (
+              <button key={tier} onClick={() => setHotelTier(tier)}
+                className={`p-2.5 rounded-xl text-center transition min-h-[52px] ${isActive ? 'ring-2 ring-emerald-500 bg-emerald-50' : 'bg-slate-50 active:bg-slate-100'}`}>
+                <div className={`font-bold text-xs ${isActive ? 'text-emerald-700' : 'text-slate-700'}`}>
+                  {tier === 'luxury' ? '\u2b50 高档' : tier === 'mid' ? '\uD83C\uDFE8 中档' : '\uD83D\uDCA1 经济'}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 概要 */}
+      <div className="grid grid-cols-2 gap-1.5 mb-4 text-xs">
+        <div className="bg-white rounded-lg p-2 glow-card"><span className="text-slate-400">行程 </span><b>{days}天</b></div>
+        <div className="bg-white rounded-lg p-2 glow-card"><span className="text-slate-400">路程 </span><b>{totalKm}km</b></div>
+        <div className="bg-white rounded-lg p-2 glow-card"><span className="text-slate-400">驾车 </span><b>{Math.floor(totalDriveMin/60)}h{totalDriveMin%60}min</b></div>
+        <div className="bg-white rounded-lg p-2 glow-card"><span className="text-slate-400">费用 </span><b>\u00a5{fmt(totalCost)}</b></div>
+      </div>
+
+      {/* 城市标签 */}
+      <div className="flex flex-wrap gap-1 mb-4">
+        {route.cities.map((c, i) => (
+          <React.Fragment key={c}>
+            {i > 0 && <span className="text-slate-400 mx-0.5 text-xs">\u2192</span>}
+            <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs font-medium">{c}</span>
+          </React.Fragment>
+        ))}
+      </div>
+
+      {/* 每日路线（可折叠） */}
+      <div className="space-y-2 mb-4">
+        {route.dayPlan.map((day) => {
+          const cityInfo = pData.cities[day.stayCity];
+          const driveHours = day.drive ? Math.floor(day.drive.minutes / 60) : 0;
+          const driveMinRem = day.drive ? day.drive.minutes % 60 : 0;
+          const needRest = day.drive && day.drive.minutes > 180;
+          const isExpanded = expandedDays[day.day] !== false; // 默认展开
+
+          // 当日导航
+          let dayNavUrl = null;
+          if (day.drive && day.drive.km > 0) {
+            const fromCity = day.day === 1 ? pData.capital : route.dayPlan[day.day - 2].stayCity;
+            const toCity = day.stayCity;
+            const fromCoord = pData.cities[fromCity]?.coord;
+            const toCoord = pData.cities[toCity]?.coord;
+            if (fromCoord && toCoord) {
+              dayNavUrl = `https://uri.amap.com/navigation?from=${fromCoord[0]},${fromCoord[1]},${encodeURIComponent(fromCity)}&to=${toCoord[0]},${toCoord[1]},${encodeURIComponent(toCity)}&mode=car&policy=1&src=travelmind&coordinate=gaode&callnative=1`;
+            }
+          }
+
+          return (
+            <div key={day.day} className="print-day bg-white border border-slate-200 rounded-xl overflow-hidden glow-card">
+              <div className="p-3 flex items-center gap-2 active:bg-slate-50" onClick={() => toggleDay(day.day)}>
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 text-white font-bold flex items-center justify-center text-sm flex-shrink-0">D{day.day}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-sm">第{day.day}天 \u00b7 {day.theme}</div>
+                  <div className="text-[11px] text-slate-500">{day.city} \u00b7 {day.hours}h</div>
+                </div>
+                <div className="text-slate-400 text-lg">{isExpanded ? '\u2303' : '\u2304'}</div>
+              </div>
+
+              {isExpanded && (
+                <div className="px-3 pb-3 fade-in">
+                  {day.drive && day.drive.km > 0 && (
+                    <div className="flex items-start gap-2 ml-2 mb-2 pl-3 border-l-2 border-dashed border-emerald-300">
+                      <span className="text-sm">\uD83D\uDE97</span>
+                      <div className="flex-1 text-xs">
+                        <span className="font-semibold text-emerald-700">{day.drive.km}km</span>
+                        <span className="text-slate-500"> \u00b7 {driveHours}h{driveMinRem > 0 ? driveMinRem + 'min' : ''}</span>
+                        <span className="text-slate-500"> \u00b7 油费\u00a5{Math.round(day.drive.km * 0.65)} \u00b7 过路\u00a5{Math.round(day.drive.km * 0.4)}</span>
+                        {needRest && <span className="text-rose-500 block mt-0.5">\u26a0\ufe0f 途中需休息</span>}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-1 mb-2">
+                    {day.activities.map((act, i) => (
+                      <div key={i} className="flex items-center gap-2 py-0.5">
+                        <div className="w-5 h-5 rounded-full bg-amber-100 text-amber-700 font-bold text-[10px] flex items-center justify-center flex-shrink-0">{i+1}</div>
+                        <div className="text-sm">{act}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {cityInfo && (() => {
+                    const selHotel = cityInfo.hotels?.[hotelTier] || cityInfo.hotels?.mid || cityInfo.hotel;
+                    return (
+                      <div className="ml-2 pl-3 border-l-2 border-dashed border-amber-300">
+                        <div className="text-[11px] text-amber-700">
+                          \uD83C\uDFE8 {selHotel.name} \u00b7 \u00a5{selHotel.price}/晚
+                        </div>
+                        {cityInfo.food && (
+                          <div className="text-[11px] text-slate-500 mt-0.5">\uD83C\uDF5C {cityInfo.food}</div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
+                  {dayNavUrl && (
+                    <a href={dayNavUrl} target="_blank" rel="noopener"
+                      className="mt-2 inline-flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg text-xs font-medium active:bg-blue-100 min-h-[40px]">
+                      \uD83D\uDDFA\uFE0F 导航今日行程（{day.drive.km}km）
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* 费用 */}
+      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-4">
+        <h3 className="font-bold mb-3">自驾费用预估</h3>
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <div className="text-center bg-white rounded-lg p-2"><div className="text-[11px] text-slate-500">油费</div><div className="font-bold text-emerald-700">\u00a5{fmt(fuelCost)}</div></div>
+          <div className="text-center bg-white rounded-lg p-2"><div className="text-[11px] text-slate-500">过路费</div><div className="font-bold text-emerald-700">\u00a5{fmt(tollCost)}</div></div>
+          <div className="text-center bg-white rounded-lg p-2"><div className="text-[11px] text-slate-500">住宿({days-1}晚)</div><div className="font-bold text-emerald-700">\u00a5{fmt(hotelCost)}</div></div>
+          <div className="text-center bg-white rounded-lg p-2"><div className="text-[11px] text-slate-500">餐饮+门票</div><div className="font-bold text-emerald-700">\u00a5{fmt(mealCost + ticketCost)}</div></div>
+        </div>
+        <div className="mt-3 pt-3 border-t border-emerald-200 text-center">
+          <span className="text-sm text-slate-500">总计</span>
+          <span className="text-2xl font-bold text-emerald-700 ml-2">\u00a5{fmt(totalCost)}</span>
+        </div>
+      </div>
+
+      {/* 底部固定导航按钮 */}
+      <div className="fixed bottom-16 left-0 right-0 px-4 pb-2 no-print" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 68px)' }}>
+        <div className="flex gap-2">
+          <a href={fullNavUrl} target="_blank" rel="noopener"
+            className="flex-1 py-3 bg-gradient-to-r from-blue-500 to-blue-700 text-white font-bold rounded-xl text-center active:scale-[0.98] transition-transform min-h-[48px] flex items-center justify-center gap-1 text-sm">
+            \uD83D\uDDFA\uFE0F 一键导航全程
+          </a>
+          <button onClick={onRestart}
+            className="px-4 py-3 bg-white border-2 border-slate-200 text-slate-700 font-bold rounded-xl active:bg-slate-50 min-h-[48px] text-sm">
+            \uD83D\uDD04
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============ 主应用 ============ */
+function App() {
+  const [stage, setStage] = useState('home');
+  const [prompt, setPrompt] = useState('');
+  const [city, setCity] = useState(null);
+  const [prefs, setPrefs] = useState(null);
+  const [routeKey, setRouteKey] = useState(null);
+  const [province, setProvince] = useState(null);
+  const [drivingDays, setDrivingDays] = useState(null);
+  const [scrollSection, setScrollSection] = useState(null);
+
+  const reset = () => {
+    setStage('home');
+    setPrompt('');
+    setCity(null);
+    setPrefs(null);
+    setRouteKey(null);
+    setProvince(null);
+    setDrivingDays(null);
+    setScrollSection(null);
+    window.scrollTo(0, 0);
+  };
+
+  const handleNav = (key) => {
+    if (key === 'home') {
+      reset();
+    } else if (key === 'route' && stage === 'plan') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (key === 'spots' && stage === 'plan') {
+      setScrollSection('spots');
+    } else if (key === 'hotel' && stage === 'plan') {
+      setScrollSection('hotel');
+    } else if (key === 'budget' && stage === 'plan') {
+      setScrollSection('budget');
+    }
+  };
+
+  return (
+    <>
+      {stage === 'home' && (
+        <HomePage onSubmit={(text) => {
+          setPrompt(text);
+          const dest = extractDestination(text);
+          if (dest && dest.type === 'province') {
+            setProvince(dest.province);
+            setStage('province-days');
+          } else {
+            setCity(dest ? dest.city : extractCity(text));
+            setStage('collect');
+          }
+        }} />
+      )}
+      {stage === 'collect' && (
+        <InfoCollector city={city} prompt={prompt}
+          onComplete={(c, ans) => { setCity(c); setPrefs(ans); setStage('recommend'); }} />
+      )}
+      {stage === 'recommend' && (
+        <RouteRecommendation city={city} prefs={prefs}
+          onSelect={(rk) => { setRouteKey(rk); setStage('plan'); window.scrollTo(0, 0); }} />
+      )}
+      {stage === 'plan' && (
+        <FullPlan city={city} prefs={prefs} routeKey={routeKey} onRestart={reset} scrollSection={scrollSection} />
+      )}
+      {stage === 'province-days' && province && (
+        <ProvinceDaysPicker province={province} onSelect={(d) => { setDrivingDays(d); setStage('province-plan'); window.scrollTo(0, 0); }} />
+      )}
+      {stage === 'province-plan' && province && drivingDays && (
+        <ProvinceDrivingPlan province={province} days={drivingDays} onRestart={reset} />
+      )}
+
+      <BottomNav stage={stage} onNav={handleNav} />
+
+      <footer className="border-t border-slate-200 py-4 mt-8 text-center text-xs text-slate-400 px-4">
+        <div>TravelMind \u00b7 AI旅游路线规划</div>
+        <div className="mt-1 text-[10px]">数据：高德POI \u00b7 互联网售票热度</div>
+      </footer>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
