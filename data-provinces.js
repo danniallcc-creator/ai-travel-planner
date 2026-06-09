@@ -17,7 +17,11 @@ window.PROVINCE_DRIVING = {
         intro: '省会林城，避暑之都',
         mustDo: '青岩古镇+甲秀楼夜景',
         food: '丝娃娃/肠旺面/酸汤鱼',
-        hotel: { name: '亚朵甲秀楼店', price: 420 }
+        hotels: {
+          luxury: { name: '贵阳亨特索菲特大酒店', price: 880 },
+          mid: { name: '亚朵甲秀楼店', price: 420 },
+          budget: { name: '汉庭贵阳喷水池店', price: 180 }
+        }
       },
       '安顺': {
         coord: [105.95, 26.25],
@@ -26,7 +30,11 @@ window.PROVINCE_DRIVING = {
         intro: '中国瀑布之乡，屯堡文化之都',
         mustDo: '黄果树大瀑布+天星桥(下半段精华)',
         food: '安顺裹卷/冲冲糕/波波糖',
-        hotel: { name: '黄果树宾馆', price: 480 }
+        hotels: {
+          luxury: { name: '黄果树柏联酒店', price: 1080 },
+          mid: { name: '黄果树宾馆', price: 480 },
+          budget: { name: '如家安顺黄果树店', price: 160 }
+        }
       },
       '遵义': {
         coord: [106.93, 27.73],
@@ -35,7 +43,11 @@ window.PROVINCE_DRIVING = {
         intro: '转折之城，红色圣地',
         mustDo: '遵义会议会址+捞沙巷美食',
         food: '羊肉粉/豆花面/鸡蛋糕',
-        hotel: { name: '遵义宾馆', price: 380 }
+        hotels: {
+          luxury: { name: '遵义香格里拉大酒店', price: 780 },
+          mid: { name: '遵义宾馆', price: 380 },
+          budget: { name: '汉庭遵义会议会址店', price: 168 }
+        }
       },
       '六盘水': {
         coord: [104.83, 26.59],
@@ -44,7 +56,11 @@ window.PROVINCE_DRIVING = {
         intro: '中国凉都，19℃的夏天',
         mustDo: '乌蒙大草原日出+韭菜坪花海(8-9月)',
         food: '水城烙锅/羊肉粉',
-        hotel: { name: '水城凉都大酒店', price: 320 }
+        hotels: {
+          luxury: { name: '六盘水福朋喜来登', price: 680 },
+          mid: { name: '水城凉都大酒店', price: 320 },
+          budget: { name: '7天六盘水火车站店', price: 128 }
+        }
       },
       '毕节': {
         coord: [105.28, 27.30],
@@ -53,7 +69,11 @@ window.PROVINCE_DRIVING = {
         intro: '花海鹤乡，溶洞王国',
         mustDo: '织金洞(溶洞之王)+百里杜鹃(3-5月)',
         food: '毕节汤圆/大方臭豆腐/织金烙锅',
-        hotel: { name: '织金洞宾馆', price: 280 }
+        hotels: {
+          luxury: { name: '毕节洪山大酒店', price: 680 },
+          mid: { name: '织金洞宾馆', price: 280 },
+          budget: { name: '格林豪泰毕节店', price: 138 }
+        }
       },
       '铜仁': {
         coord: [109.19, 27.73],
@@ -62,7 +82,11 @@ window.PROVINCE_DRIVING = {
         intro: '梵天净土，桃源铜仁',
         mustDo: '梵净山(红云金顶+蘑菇石)',
         food: '锅巴粉/社饭/米豆腐',
-        hotel: { name: '梵净山翠苑酒店', price: 380 }
+        hotels: {
+          luxury: { name: '梵净山栖溪度假酒店', price: 880 },
+          mid: { name: '梵净山翠苑酒店', price: 380 },
+          budget: { name: '汉庭铜仁古城店', price: 158 }
+        }
       },
       '兴义': {
         coord: [104.90, 25.09],
@@ -71,7 +95,11 @@ window.PROVINCE_DRIVING = {
         intro: '峰林之城，户外天堂',
         mustDo: '万峰林骑行+马岭河峡谷徒步',
         food: '兴义刷把头/鸡肉汤圆/杠子面',
-        hotel: { name: '万峰林布依客栈', price: 320 }
+        hotels: {
+          luxury: { name: '万峰林悦榕庄', price: 1180 },
+          mid: { name: '万峰林布依客栈', price: 320 },
+          budget: { name: '如家兴义桔山店', price: 148 }
+        }
       },
       '凯里': {
         coord: [107.98, 26.57],
@@ -80,7 +108,11 @@ window.PROVINCE_DRIVING = {
         intro: '苗侗之都，歌舞之乡',
         mustDo: '西江千户苗寨夜景+长桌宴',
         food: '酸汤鱼/苗家腊肉/糯米饭',
-        hotel: { name: '西江悦榕庄', price: 580 }
+        hotels: {
+          luxury: { name: '西江悦榕庄', price: 980 },
+          mid: { name: '凯里希尔顿花园', price: 450 },
+          budget: { name: '汉庭凯里大十字店', price: 158 }
+        }
       },
       '荔波': {
         coord: [107.88, 25.42],
@@ -89,7 +121,11 @@ window.PROVINCE_DRIVING = {
         intro: '地球绿宝石，世界自然遗产',
         mustDo: '小七孔(卧龙潭+鸳鸯湖+68级跌水瀑布)',
         food: '荔波酸肉/水蕨菜/臭酸',
-        hotel: { name: '荔波古镇客栈', price: 320 }
+        hotels: {
+          luxury: { name: '荔波瑶山古寨度假酒店', price: 780 },
+          mid: { name: '荔波古镇客栈', price: 320 },
+          budget: { name: '7天荔波县城店', price: 138 }
+        }
       },
       '镇远': {
         coord: [108.43, 27.05],
@@ -98,7 +134,11 @@ window.PROVINCE_DRIVING = {
         intro: '太极古城，舞阳画廊',
         mustDo: '镇远古镇夜景+舞阳河泛舟',
         food: '道菜/酸汤鱼/米豆腐',
-        hotel: { name: '镇远河畔民宿', price: 280 }
+        hotels: {
+          luxury: { name: '镇远循美·河畔精品酒店', price: 680 },
+          mid: { name: '镇远河畔民宿', price: 280 },
+          budget: { name: '格林豪泰镇远古城店', price: 128 }
+        }
       }
     },
 
@@ -202,7 +242,11 @@ window.PROVINCE_DRIVING['山西'] = {
       intro: '龙城太原，三晋首府，拥有2500年建成史',
       mustDo: '晋祠+蒙山大佛',
       food: '刀削面/头脑/过油肉',
-      hotel: { name: '太原并州饭店', price: 480 }
+      hotels: {
+        luxury: { name: '太原凯宾斯基饭店', price: 980 },
+        mid: { name: '太原并州饭店', price: 480 },
+        budget: { name: '汉庭太原迎泽大街店', price: 198 }
+      }
     },
     '大同': {
       coord: [113.2980, 40.0764],
@@ -211,7 +255,11 @@ window.PROVINCE_DRIVING['山西'] = {
       intro: '塞外名城，北魏古都，石窟艺术圣地',
       mustDo: '云冈石窟+悬空寺',
       food: '大同刀削面/羊杂/黄糕',
-      hotel: { name: '大同花园大饭店', price: 520 }
+      hotels: {
+        luxury: { name: '大同云冈建国宾馆', price: 880 },
+        mid: { name: '大同花园大饭店', price: 520 },
+        budget: { name: '如家大同古城店', price: 188 }
+      }
     },
     '朔州': {
       coord: [112.4329, 39.3319],
@@ -220,7 +268,11 @@ window.PROVINCE_DRIVING['山西'] = {
       intro: '边塞重镇，木塔之乡，右玉精神发源地',
       mustDo: '应县木塔+崇福寺',
       food: '右玉羊肉/莜面栲栳栳/黄糕',
-      hotel: { name: '朔州中北大酒店', price: 380 }
+      hotels: {
+        luxury: { name: '朔州万豪大酒店', price: 680 },
+        mid: { name: '朔州中北大酒店', price: 380 },
+        budget: { name: '汉庭朔州开发区店', price: 158 }
+      }
     },
     '忻州': {
       coord: [112.7341, 38.4167],
@@ -229,7 +281,11 @@ window.PROVINCE_DRIVING['山西'] = {
       intro: '佛教圣地，温泉之乡，五台山脚下的心灵净土',
       mustDo: '五台山+雁门关',
       food: '忻州蒸肉/原平锅盔/高粱面鱼鱼',
-      hotel: { name: '忻州泛华大酒店', price: 450 }
+      hotels: {
+        luxury: { name: '五台山万佛阁酒店', price: 880 },
+        mid: { name: '忻州泛华大酒店', price: 450 },
+        budget: { name: '如家忻州古城店', price: 168 }
+      }
     },
     '吕梁': {
       coord: [111.1442, 37.5189],
@@ -238,7 +294,11 @@ window.PROVINCE_DRIVING['山西'] = {
       intro: '黄河明珠，酒乡吕梁，碛口古镇守望黄河',
       mustDo: '碛口古镇+北武当山',
       food: '吕梁红枣/临县豆腐/杏花村汾酒',
-      hotel: { name: '吕梁国际大酒店', price: 360 }
+      hotels: {
+        luxury: { name: '吕梁大饭店', price: 680 },
+        mid: { name: '吕梁国际大酒店', price: 360 },
+        budget: { name: '汉庭吕梁离石店', price: 138 }
+      }
     },
     '晋中': {
       coord: [112.7527, 37.6872],
@@ -247,7 +307,11 @@ window.PROVINCE_DRIVING['山西'] = {
       intro: '晋商故里，古城之韵，票号汇通天下的传奇',
       mustDo: '平遥古城+乔家大院',
       food: '平遥牛肉/栲栳栳/碗托',
-      hotel: { name: '平遥麒麟阁大饭店', price: 460 }
+      hotels: {
+        luxury: { name: '平遥麒麟阁大饭店', price: 780 },
+        mid: { name: '平遥会馆酒店', price: 460 },
+        budget: { name: '如家平遥古城店', price: 188 }
+      }
     },
     '临汾': {
       coord: [111.5190, 36.0841],
@@ -256,7 +320,11 @@ window.PROVINCE_DRIVING['山西'] = {
       intro: '华夏根祖，尧都临汾，黄河壶口咆哮千年',
       mustDo: '壶口瀑布+洪洞大槐树',
       food: '临汾牛肉丸子面/尧都烧饼/洪洞饸饹面',
-      hotel: { name: '临汾五洲酒店', price: 420 }
+      hotels: {
+        luxury: { name: '临汾金都花园大酒店', price: 780 },
+        mid: { name: '临汾五洲酒店', price: 420 },
+        budget: { name: '7天临汾尧都店', price: 158 }
+      }
     },
     '运城': {
       coord: [111.0073, 35.0268],
@@ -265,7 +333,11 @@ window.PROVINCE_DRIVING['山西'] = {
       intro: '关公故里，盐湖之城，鹳雀楼上望黄河',
       mustDo: '关帝庙+鹳雀楼',
       food: '运城大盘鸡/稷山麻花/闻喜煮饼',
-      hotel: { name: '运城恒泽大酒店', price: 400 }
+      hotels: {
+        luxury: { name: '运城恒泽大酒店', price: 680 },
+        mid: { name: '运城盐湖大酒店', price: 400 },
+        budget: { name: '汉庭运城盐湖店', price: 148 }
+      }
     },
     '长治': {
       coord: [113.1163, 36.1953],
@@ -274,7 +346,11 @@ window.PROVINCE_DRIVING['山西'] = {
       intro: '上党名城，太行明珠，壮美峡谷的天然画廊',
       mustDo: '太行山大峡谷+八泉峡',
       food: '上党腊驴肉/壶关羊汤/长子炒饼',
-      hotel: { name: '长治滨湖大酒店', price: 430 }
+      hotels: {
+        luxury: { name: '长治滨湖大酒店', price: 780 },
+        mid: { name: '长治八一广场亚朵', price: 430 },
+        budget: { name: '如家长治八一广场店', price: 168 }
+      }
     },
     '晋城': {
       coord: [112.8517, 35.4904],
@@ -283,7 +359,11 @@ window.PROVINCE_DRIVING['山西'] = {
       intro: '太行古堡，铁花之乡，相府名宅冠绝三晋',
       mustDo: '皇城相府+王莽岭',
       food: '晋城烧大葱/高平十大碗/阳城火锅',
-      hotel: { name: '晋城国贸大酒店', price: 440 }
+      hotels: {
+        luxury: { name: '晋城国贸大酒店', price: 680 },
+        mid: { name: '晋城凤城国际酒店', price: 440 },
+        budget: { name: '格林豪泰晋城泽州店', price: 158 }
+      }
     }
   },
 
@@ -596,7 +676,11 @@ window.PROVINCE_DRIVING['浙江'] = {
       intro: '人间天堂，数字经济之都',
       mustDo: '西湖骑行环湖+灵隐寺祈福',
       food: '龙井虾仁/东坡肉/片儿川',
-      hotel: { name: '杭州柳莺里酒店', price: 880 }
+      hotels: {
+        luxury: { name: '杭州柳莺里酒店', price: 1280 },
+        mid: { name: '全季杭州西湖店', price: 520 },
+        budget: { name: '汉庭杭州西湖店', price: 258 }
+      }
     },
     '嘉兴': {
       coord: [120.76, 30.77],
@@ -605,7 +689,11 @@ window.PROVINCE_DRIVING['浙江'] = {
       intro: '红船圣地，江南水乡典范',
       mustDo: '乌镇夜游+南湖红船',
       food: '南湖菱/粽子/海宁缸肉',
-      hotel: { name: '嘉兴沙龙国际宾馆', price: 480 }
+      hotels: {
+        luxury: { name: '嘉兴南湖大酒店', price: 880 },
+        mid: { name: '嘉兴沙龙国际宾馆', price: 480 },
+        budget: { name: '如家嘉兴南湖店', price: 188 }
+      }
     },
     '湖州': {
       coord: [120.09, 30.89],
@@ -614,7 +702,11 @@ window.PROVINCE_DRIVING['浙江'] = {
       intro: '太湖明珠，绿水青山发源地',
       mustDo: '莫干山民宿+南浔百间楼',
       food: '千张包/太湖三白/练市酱羊肉',
-      hotel: { name: '湖州东吴开元名都酒店', price: 580 }
+      hotels: {
+        luxury: { name: '湖州太湖龙之梦酒店', price: 980 },
+        mid: { name: '湖州东吴开元名都', price: 580 },
+        budget: { name: '汉庭湖州火车站店', price: 198 }
+      }
     },
     '绍兴': {
       coord: [120.58, 30.00],
@@ -623,7 +715,11 @@ window.PROVINCE_DRIVING['浙江'] = {
       intro: '名士之乡，黄酒之都',
       mustDo: '鲁迅故里+沈园夜游',
       food: '茴香豆/醉鸡/臭豆腐/黄酒',
-      hotel: { name: '绍兴咸亨酒店', price: 520 }
+      hotels: {
+        luxury: { name: '绍兴兰亭安麓酒店', price: 1180 },
+        mid: { name: '绍兴咸亨酒店', price: 520 },
+        budget: { name: '如家绍兴鲁迅故里店', price: 208 }
+      }
     },
     '宁波': {
       coord: [121.55, 29.87],
@@ -632,7 +728,11 @@ window.PROVINCE_DRIVING['浙江'] = {
       intro: '书藏古今，港通天下',
       mustDo: '天一阁+溪口雪窦山',
       food: '宁波汤圆/红膏蟹/雪菜大黄鱼',
-      hotel: { name: '宁波柏悦酒店', price: 780 }
+      hotels: {
+        luxury: { name: '宁波柏悦酒店', price: 1080 },
+        mid: { name: '亚朵宁波天一广场店', price: 480 },
+        budget: { name: '汉庭宁波天一店', price: 218 }
+      }
     },
     '舟山': {
       coord: [122.10, 30.00],
@@ -641,7 +741,11 @@ window.PROVINCE_DRIVING['浙江'] = {
       intro: '海天佛国，千岛之城',
       mustDo: '普陀山朝拜+朱家尖看海',
       food: '海鲜面/佛跳墙/带鱼/梭子蟹',
-      hotel: { name: '舟山喜来登绿城酒店', price: 680 }
+      hotels: {
+        luxury: { name: '舟山喜来登绿城酒店', price: 980 },
+        mid: { name: '舟山喜来登绿城酒店', price: 680 },
+        budget: { name: '如家舟山沈家门店', price: 238 }
+      }
     },
     '金华': {
       coord: [119.65, 29.08],
@@ -650,7 +754,11 @@ window.PROVINCE_DRIVING['浙江'] = {
       intro: '浙中枢纽，影视名城',
       mustDo: '双龙洞探奇+横店穿越',
       food: '金华火腿/酥饼/兰溪鸡子粿',
-      hotel: { name: '金华万达嘉华酒店', price: 480 }
+      hotels: {
+        luxury: { name: '金华万达嘉华酒店', price: 780 },
+        mid: { name: '金华世贸大饭店', price: 480 },
+        budget: { name: '汉庭金华火车站店', price: 178 }
+      }
     },
     '衢州': {
       coord: [118.87, 28.94],
@@ -659,7 +767,11 @@ window.PROVINCE_DRIVING['浙江'] = {
       intro: '四省通衢，南孔圣地',
       mustDo: '江郎山丹霞+廿八都古镇',
       food: '三头一掌/衢州烤饼/龙游发糕',
-      hotel: { name: '衢州饭店', price: 420 }
+      hotels: {
+        luxury: { name: '衢州国际大酒店', price: 680 },
+        mid: { name: '衢州饭店', price: 420 },
+        budget: { name: '如家衢州古城店', price: 158 }
+      }
     },
     '台州': {
       coord: [121.42, 28.66],
@@ -668,7 +780,11 @@ window.PROVINCE_DRIVING['浙江'] = {
       intro: '山海神秀，和合圣地',
       mustDo: '天台山国清寺+神仙居栈道',
       food: '食饼筒/仙居杨梅/海苔饼/姜汁核桃',
-      hotel: { name: '台州开元大酒店', price: 520 }
+      hotels: {
+        luxury: { name: '台州开元大酒店', price: 780 },
+        mid: { name: '亚朵台州椒江店', price: 520 },
+        budget: { name: '汉庭台州临海古城店', price: 188 }
+      }
     },
     '温州': {
       coord: [120.70, 28.00],
@@ -677,7 +793,11 @@ window.PROVINCE_DRIVING['浙江'] = {
       intro: '山水奇秀，民营经济之都',
       mustDo: '雁荡山夜游灵峰+楠溪江漂流',
       food: '鱼丸/灯盏糕/温州糯米饭',
-      hotel: { name: '温州香格里拉大酒店', price: 680 }
+      hotels: {
+        luxury: { name: '温州香格里拉大酒店', price: 980 },
+        mid: { name: '温州亚朵雁荡山店', price: 480 },
+        budget: { name: '如家温州火车站店', price: 198 }
+      }
     }
   },
   distances: {

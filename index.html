@@ -1406,6 +1406,8 @@ function ProvinceDaysPicker({ province, onSelect }) {
 function ProvinceDrivingPlan({ province, days, onRestart }) {
   const pData = window.PROVINCE_DRIVING[province];
   const route = useMemo(() => window.generateDrivingRoute(province, days), [province, days]);
+  const [hotelTier, setHotelTier] = useState('mid');
+  const tierLabels = { luxury: '高档', mid: '中档', budget: '经济' };
 
   if (!route) return <div className="text-center py-20 text-slate-400">暂无路线数据</div>;
 
@@ -1415,11 +1417,16 @@ function ProvinceDrivingPlan({ province, days, onRestart }) {
     if (d.drive) { totalKm += d.drive.km; totalDriveMin += d.drive.minutes; }
   });
 
-  // 费用估算
+  // 费用估算（住宿按选定档次计算前N-1晚）
   const fuelCost = Math.round(totalKm * 0.65);
   const tollCost = Math.round(totalKm * 0.4);
-  const hotelPerNight = 380;
-  const hotelCost = hotelPerNight * (days - 1);
+  const hotelNights = Math.max(0, days - 1);
+  const hotelCost = route.dayPlan.slice(0, hotelNights).reduce((sum, day) => {
+    const ci = pData.cities[day.stayCity];
+    const h = ci?.hotels?.[hotelTier] || ci?.hotels?.mid;
+    return sum + (h ? h.price : 380);
+  }, 0);
+  const hotelPerNight = hotelNights > 0 ? Math.round(hotelCost / hotelNights) : 380;
   const mealCost = days * 150;
   const ticketCost = days * 100;
   const totalCost = fuelCost + tollCost + hotelCost + mealCost + ticketCost;
@@ -1437,6 +1444,32 @@ function ProvinceDrivingPlan({ province, days, onRestart }) {
           <button onClick={onRestart} className="px-5 py-2.5 bg-white text-emerald-600 font-bold rounded-xl hover:opacity-90">
             🔄 重新规划
           </button>
+        </div>
+      </div>
+
+      {/* 酒店档次选择 */}
+      <div className="no-print bg-white rounded-2xl p-4 mb-6 glow-card">
+        <div className="text-sm text-slate-600 mb-3">🏨 选择住宿档次（{hotelNights}晚住宿费用将据此计算）</div>
+        <div className="grid grid-cols-3 gap-3">
+          {['luxury', 'mid', 'budget'].map(tier => {
+            const isActive = hotelTier === tier;
+            const samplePrices = route.dayPlan.slice(0, hotelNights).map(d => {
+              const ci = pData.cities[d.stayCity];
+              const h = ci?.hotels?.[tier] || ci?.hotels?.mid;
+              return h ? h.price : 0;
+            });
+            const avgPrice = samplePrices.length > 0 ? Math.round(samplePrices.reduce((a,b) => a+b, 0) / samplePrices.length) : 0;
+            return (
+              <button key={tier} onClick={() => setHotelTier(tier)}
+                className={`p-3 rounded-xl text-left transition-all ${isActive ? 'ring-2 ring-emerald-500 bg-emerald-50' : 'bg-slate-50 hover:bg-slate-100'}`}>
+                <div className={`font-bold text-sm ${isActive ? 'text-emerald-700' : 'text-slate-700'}`}>
+                  {tier === 'luxury' ? '⭐ 高档' : tier === 'mid' ? '🏨 中档' : '💡 经济'}
+                </div>
+                <div className="text-xs text-slate-500 mt-1">均价 ¥{avgPrice}/晚</div>
+                <div className="text-xs text-slate-400 mt-0.5">{tier === 'luxury' ? '四星/五星/精品度假' : tier === 'mid' ? '亚朵/全季/维也纳' : '如家/汉庭/7天'}</div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -1517,17 +1550,36 @@ function ProvinceDrivingPlan({ province, days, onRestart }) {
                 </div>
 
                 {/* 当晚住宿 */}
-                {cityInfo && (
-                  <div className="ml-3 pl-4 border-l-2 border-dashed border-amber-300">
-                    <div className="flex items-center gap-2 text-xs text-amber-700">
-                      <span className="text-base">🏨</span>
-                      <span>当晚入住 <b>{cityInfo.hotel.name}</b> · ¥{cityInfo.hotel.price}/晚</span>
+                {cityInfo && (() => {
+                  const selHotel = cityInfo.hotels?.[hotelTier] || cityInfo.hotels?.mid || cityInfo.hotel;
+                  const allTiers = cityInfo.hotels || null;
+                  return (
+                    <div className="ml-3 pl-4 border-l-2 border-dashed border-amber-300">
+                      <div className="flex items-center gap-2 text-xs text-amber-700">
+                        <span className="text-base">🏨</span>
+                        <span>当晚入住 <b>{selHotel.name}</b>（{tierLabels[hotelTier] || '中档'}）· ¥{selHotel.price}/晚</span>
+                      </div>
+                      {allTiers && (
+                        <div className="ml-6 mt-1 flex flex-wrap gap-2 text-[11px]">
+                          {['luxury', 'mid', 'budget'].map(t => {
+                            const h = allTiers[t];
+                            if (!h) return null;
+                            const isActive = t === hotelTier;
+                            return (
+                              <button key={t} onClick={() => setHotelTier(t)}
+                                className={`px-2 py-0.5 rounded-full border transition-all ${isActive ? 'bg-amber-100 border-amber-400 text-amber-800 font-semibold' : 'bg-white border-slate-200 text-slate-500 hover:border-amber-300'}`}>
+                                {t === 'luxury' ? '⭐' : t === 'mid' ? '🏨' : '💡'} {h.name} ¥{h.price}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {cityInfo.food && (
+                        <div className="text-xs text-slate-500 ml-6 mt-0.5">🍜 推荐美食：{cityInfo.food}</div>
+                      )}
                     </div>
-                    {cityInfo.food && (
-                      <div className="text-xs text-slate-500 ml-6 mt-0.5">🍜 推荐美食：{cityInfo.food}</div>
-                    )}
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             );
           })}
