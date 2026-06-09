@@ -2439,6 +2439,302 @@ window.CITY_DATABASE = {
         { name: '7天连锁丽江古城店', loc: '丽江古城北门', price: 220, star: 3, perks: '步入古城' }
       ]
     }
+  },
+
+  '重庆': {
+    code: 'chongqing',
+    province: '重庆市',
+    coord: [106.5516, 29.5630],
+    bestSeason: '春秋最佳(3-5月/9-11月)，夏季极热',
+    routes: {
+      classic: {
+        name: '重庆经典4日',
+        days: 4,
+        tagline: '魔幻山城+火锅江湖',
+        spots: ['洪崖洞', '解放碑', '磁器口', '长江索道', '武隆天坑', '大足石刻'],
+        dayPlan: [
+          { day: 1, theme: '魔幻山城', list: ['解放碑', '洪崖洞', '长江索道', '南山一棵树夜景'], hours: 8 },
+          { day: 2, theme: '古镇人文', list: ['磁器口', '白公馆', '渣滓洞', '李子坝轻轨穿楼'], hours: 8 },
+          { day: 3, theme: '世遗石刻', list: ['大足石刻(宝顶山+北山)'], hours: 9 },
+          { day: 4, theme: '天坑地缝', list: ['武隆天生三桥', '龙水峡地缝'], hours: 10 }
+        ]
+      },
+      niche: {
+        name: '重庆小众3日',
+        days: 3,
+        tagline: '山城腹地的隐秘江湖',
+        spots: ['交通茶馆', '山城步道', '鹅岭二厂', '弹子石老街', '黄桷坪涂鸦街'],
+        dayPlan: [
+          { day: 1, theme: '老重庆', list: ['交通茶馆', '山城步道', '十八梯'], hours: 7 },
+          { day: 2, theme: '文创艺术', list: ['鹅岭二厂', '黄桷坪涂鸦街', '川美'], hours: 7 },
+          { day: 3, theme: '江岸秘境', list: ['弹子石老街', '龙门浩老街', '南滨路'], hours: 7 }
+        ]
+      },
+      culture: {
+        name: '重庆人文5日',
+        days: 5,
+        tagline: '抗战陪都+巴渝文化深度行',
+        spots: ['大足石刻', '三峡博物馆', '人民大礼堂', '白公馆', '钓鱼城'],
+        dayPlan: [
+          { day: 1, theme: '三峡文明', list: ['中国三峡博物馆', '人民大礼堂'], hours: 7 },
+          { day: 2, theme: '红岩精神', list: ['白公馆', '渣滓洞', '红岩革命纪念馆'], hours: 8 },
+          { day: 3, theme: '世遗佛教', list: ['大足石刻(全程讲解)'], hours: 9 },
+          { day: 4, theme: '古战场', list: ['钓鱼城(合川)'], hours: 8 },
+          { day: 5, theme: '巴渝古镇', list: ['磁器口', '湖广会馆', '罗汉寺'], hours: 7 }
+        ]
+      },
+      nature: {
+        name: '重庆山水4日',
+        days: 4,
+        tagline: '喀斯特奇观+长江峡谷',
+        spots: ['武隆天生三桥', '芙蓉洞', '黑山谷', '金佛山'],
+        dayPlan: [
+          { day: 1, theme: '天坑奇观', list: ['武隆天生三桥', '龙水峡地缝'], hours: 9 },
+          { day: 2, theme: '溶洞王国', list: ['芙蓉洞', '芙蓉江'], hours: 8 },
+          { day: 3, theme: '峡谷秘境', list: ['黑山谷(全程步道)'], hours: 9 },
+          { day: 4, theme: '南方雪山', list: ['金佛山'], hours: 8 }
+        ]
+      }
+    },
+    attractions: {
+      mustSee: [
+        { name: '洪崖洞', rank: 1, intro: '魔幻山城地标，11层吊脚楼群夜晚灯火通明如千与千寻现实版，重庆必打卡NO.1。', coord: [106.578, 29.562], photoSpots: [{ name: '千厮门大桥', pose: '隔江拍夜景全景' }, { name: '11层平台', pose: '俯瞰嘉陵江' }], food: [{ name: '花市豌杂面', star: 5, desc: '重庆小面标杆' }], duration: 2.5, ticket: 0, tip: '晚6点亮灯后最美' },
+        { name: '武隆天生三桥', rank: 2, intro: '世界自然遗产，三座天然石拱桥+天坑群，变形金刚4取景地。', coord: [107.747, 29.327], photoSpots: [{ name: '天龙桥下', pose: '仰拍桥洞天光' }, { name: '天福官驿', pose: '电影取景点' }], food: [{ name: '武隆碗碗羊肉', star: 4, desc: '当地特色' }], duration: 4, ticket: 135, tip: '需预留整日' },
+        { name: '大足石刻', rank: 3, intro: '世界文化遗产，唐宋摩崖石刻5万余尊，宝顶山大佛湾为核心。', coord: [105.703, 29.700], photoSpots: [{ name: '千手观音', pose: '金碧辉煌修复后' }, { name: '卧佛', pose: '31米释迦涅槃像' }], food: [{ name: '大足邮亭鲫鱼', star: 5, desc: '当地名菜' }], duration: 4, ticket: 115, tip: '建议请讲解' },
+        { name: '磁器口古镇', rank: 4, intro: '千年巴渝古镇，明清建筑+老茶馆+非遗手艺，小重庆称号。', coord: [106.448, 29.580], photoSpots: [{ name: '古镇牌坊', pose: '老街纵深' }], food: [{ name: '陈麻花', star: 5, desc: '磁器口特产' }, { name: '毛血旺', star: 5, desc: '磁器口发源' }], duration: 3, ticket: 0, tip: '工作日人少' },
+        { name: '长江索道', rank: 5, intro: '唯一跨长江城市客运索道，万里长江第一条空中走廊。', coord: [106.585, 29.558], photoSpots: [{ name: '索道车厢内', pose: '江景全景' }], food: [{ name: '好又来酸辣粉', star: 5, desc: '网红小吃' }], duration: 1, ticket: 20, tip: '单程4分钟，建议南→北' }
+      ],
+      secondary: [
+        { name: '解放碑', rank: 6, intro: '重庆CBD地标，西南最繁华商圈。', coord: [106.578, 29.558], photoSpots: [{ name: '碑下', pose: '标志性合影' }], food: [{ name: '八一好吃街', star: 5, desc: '小吃一条街' }], duration: 2, ticket: 0, tip: '夜晚灯火最美' },
+        { name: '李子坝轻轨穿楼', rank: 7, intro: '轻轨2号线穿越居民楼，魔幻城市名片。', coord: [106.519, 29.553], photoSpots: [{ name: '观景平台', pose: '列车穿楼瞬间' }], food: [{ name: '梯坎豆花', star: 4, desc: '附近老店' }], duration: 0.5, ticket: 0, tip: '等一班车约3分钟' },
+        { name: '南山一棵树', rank: 8, intro: '俯瞰渝中半岛夜景最佳观景台。', coord: [106.584, 29.533], photoSpots: [{ name: '观景台', pose: '长曝光城市夜景' }], food: [{ name: '南山泉水鸡', star: 5, desc: '南山名菜' }], duration: 2, ticket: 30, tip: '日落后45分钟最美' },
+        { name: '人民大礼堂', rank: 9, intro: '仿天坛造型，重庆地标建筑。', coord: [106.555, 29.558], photoSpots: [{ name: '正面广场', pose: '对称构图' }], food: [{ name: '洞子火锅', star: 5, desc: '防空洞内吃火锅' }], duration: 1, ticket: 10, tip: '与三峡博物馆隔广场' },
+        { name: '芙蓉洞', rank: 10, intro: '世界三大洞穴之一，钟乳石种类数世界第一。', coord: [107.900, 29.232], photoSpots: [{ name: '辉煌大厅', pose: '彩灯钟乳石' }], food: [{ name: '武隆烤鱼', star: 4, desc: '当地特色' }], duration: 2.5, ticket: 120, tip: '洞内恒温15℃' }
+      ],
+      hidden: [
+        { name: '交通茶馆', rank: 11, intro: '重庆最后的老茶馆，原汁原味山城市井生活。', trend: '+245% 近3月热度', coord: [106.449, 29.580], photoSpots: [{ name: '茶馆内景', pose: '烟雾缭绕老重庆' }], food: [{ name: '盖碗茶', star: 5, desc: '10元一碗' }], duration: 2, ticket: 0, tip: '下午最有氛围' },
+        { name: '鹅岭二厂', rank: 12, intro: '老印刷厂改造文创园，从你的全世界路过取景地。', trend: '+156% 近3月热度', coord: [106.537, 29.561], photoSpots: [{ name: '天台', pose: '俯瞰两江' }], food: [{ name: '二厂咖啡', star: 4, desc: '文艺空间' }], duration: 2.5, ticket: 0, tip: '文创店周一多休' },
+        { name: '黑山谷', rank: 13, intro: '亚洲最大生态峡谷，全程13km步道+浮桥+栈道。', trend: '+108% 近3月热度', coord: [106.966, 28.864], photoSpots: [{ name: '悬空栈道', pose: '峡谷深处' }], food: [{ name: '万盛烤全羊', star: 4, desc: '景区附近' }], duration: 6, ticket: 100, tip: '建议北门进' }
+      ]
+    },
+    transport: {
+      airport: '重庆江北国际机场',
+      mainStation: '重庆北站/重庆西站',
+      publicTransit: { metroDailyCost: 30, taxiAvg: 20, busCost: 2 },
+      driving: { tollPerDay: 80, fuelPer100km: 65, parking: 50 }
+    },
+    accommodation: {
+      luxury: [
+        { name: '重庆洲际酒店', loc: '解放碑', price: 1580, star: 5, perks: '俯瞰两江' },
+        { name: '柏联温泉酒店', loc: '北碚', price: 2280, star: 5, perks: '温泉度假' },
+        { name: '丽晶酒店', loc: '江北嘴', price: 1380, star: 5, perks: '江景无敌' }
+      ],
+      mid: [
+        { name: '亚朵解放碑店', loc: '解放碑', price: 520, star: 4, perks: '步行至洪崖洞' },
+        { name: '美居南滨路店', loc: '南滨路', price: 480, star: 4, perks: '江景房' },
+        { name: '全季磁器口店', loc: '磁器口', price: 420, star: 4, perks: '古镇旁' }
+      ],
+      budget: [
+        { name: '汉庭解放碑店', loc: '解放碑', price: 280, star: 3, perks: '商圈核心' },
+        { name: '7天连锁磁器口店', loc: '磁器口', price: 220, star: 3, perks: '古镇旁' },
+        { name: '如家朝天门店', loc: '朝天门', price: 240, star: 3, perks: '码头便利' }
+      ]
+    }
+  },
+
+  '长沙': {
+    code: 'changsha',
+    province: '湖南省',
+    coord: [112.9388, 28.2282],
+    bestSeason: '春秋最佳(3-5月/9-11月)',
+    routes: {
+      classic: {
+        name: '长沙经典3日',
+        days: 3,
+        tagline: '橘洲看万山红遍+美食天堂',
+        spots: ['橘子洲', '岳麓山', '太平街', '湖南省博物馆', '坡子街'],
+        dayPlan: [
+          { day: 1, theme: '湘江风光', list: ['橘子洲', '岳麓山', '岳麓书院', '爱晚亭'], hours: 8 },
+          { day: 2, theme: '文化探索', list: ['湖南省博物馆(马王堆)', '天心阁', '简牍博物馆'], hours: 8 },
+          { day: 3, theme: '美食漫步', list: ['太平街', '坡子街', '黄兴路步行街'], hours: 7 }
+        ]
+      },
+      niche: {
+        name: '长沙文艺3日',
+        days: 3,
+        tagline: '超级文和友之外的长沙',
+        spots: ['谢子龙影像艺术馆', '后湖艺术区', '白果园', '化龙池'],
+        dayPlan: [
+          { day: 1, theme: '艺术地标', list: ['谢子龙影像艺术馆', '李自健美术馆', '后湖艺术区'], hours: 7 },
+          { day: 2, theme: '老城巷弄', list: ['白果园', '都正街', '化龙池'], hours: 7 },
+          { day: 3, theme: '文艺漫游', list: ['止间书店', '长沙当代美术馆', '裕湘纱厂'], hours: 7 }
+        ]
+      },
+      culture: {
+        name: '长沙人文4日',
+        days: 4,
+        tagline: '湖湘文化源头',
+        spots: ['湖南省博物馆', '岳麓书院', '铜官窑', '贾谊故居'],
+        dayPlan: [
+          { day: 1, theme: '辛追之谜', list: ['湖南省博物馆(辛追夫人+T形帛画)'], hours: 6 },
+          { day: 2, theme: '千年学府', list: ['岳麓书院', '中国书院博物馆', '爱晚亭'], hours: 7 },
+          { day: 3, theme: '陶瓷之源', list: ['铜官窑国家考古遗址公园', '铜官古镇'], hours: 8 },
+          { day: 4, theme: '近代湖湘', list: ['贾谊故居', '第一师范', '开福寺'], hours: 7 }
+        ]
+      },
+      nature: {
+        name: '长沙周边山水3日',
+        days: 3,
+        tagline: '岳麓红叶+大围山',
+        spots: ['岳麓山', '大围山', '浏阳河'],
+        dayPlan: [
+          { day: 1, theme: '麓山红叶', list: ['岳麓山', '爱晚亭', '麓山寺'], hours: 7 },
+          { day: 2, theme: '杜鹃花海', list: ['大围山国家森林公园'], hours: 9 },
+          { day: 3, theme: '浏阳古镇', list: ['浏阳河', '文家市秋收起义纪念馆'], hours: 8 }
+        ]
+      }
+    },
+    attractions: {
+      mustSee: [
+        { name: '橘子洲', rank: 1, intro: '湘江中央5km长洲，毛泽东青年艺术雕塑32米高，独立寒秋湘江北去诗境地。', coord: [112.959, 28.191], photoSpots: [{ name: '毛泽东青年雕塑', pose: '正面仰拍+蓝天' }, { name: '洲头', pose: '远眺湘江两岸' }], food: [{ name: '臭豆腐', star: 5, desc: '黑色经典' }], duration: 3, ticket: 0, tip: '免费需预约' },
+        { name: '岳麓山', rank: 2, intro: '中国四大书院之首岳麓书院所在，千年学府传承不断，爱晚亭红叶全国知名。', coord: [112.932, 28.186], photoSpots: [{ name: '爱晚亭', pose: '深秋红叶合影' }, { name: '岳麓书院大门', pose: '惟楚有才对联' }], food: [{ name: '帅哥烧饼', star: 4, desc: '网红小吃' }], duration: 4, ticket: 50, tip: '书院票50元山门免费' },
+        { name: '湖南省博物馆', rank: 3, intro: '马王堆汉墓出土辛追夫人/T形帛画/素纱单衣等国宝，新馆2017年开放。', coord: [112.980, 28.212], photoSpots: [{ name: '辛追展厅', pose: '2100年不腐之谜(禁闪光)' }], food: [{ name: '博物馆简餐', star: 3, desc: '内部餐厅' }], duration: 4, ticket: 0, tip: '需预约周一闭馆' },
+        { name: '太平街', rank: 4, intro: '长沙最完整明清古街，贾谊故居所在，湘菜小吃集散地。', coord: [112.972, 28.196], photoSpots: [{ name: '贾谊故居门前', pose: '古建汉服' }], food: [{ name: '文和友', star: 5, desc: '排队名店' }, { name: '茶颜悦色', star: 5, desc: '长沙茶饮名片' }], duration: 3, ticket: 0, tip: '夜晚人最多' },
+        { name: '坡子街', rank: 5, intro: '长沙美食第一街，火宫殿/向群锅饺等老字号林立。', coord: [112.968, 28.193], photoSpots: [{ name: '火宫殿牌坊', pose: '老字号招牌' }], food: [{ name: '火宫殿臭豆腐', star: 5, desc: '百年老字号' }, { name: '糖油粑粑', star: 5, desc: '湘味小吃' }], duration: 3, ticket: 0, tip: '晚6点后最热闹' }
+      ],
+      secondary: [
+        { name: '天心阁', rank: 6, intro: '长沙古城标志，始建于明代。', coord: [112.979, 28.189], photoSpots: [{ name: '城楼', pose: '古城墙合影' }], food: [{ name: '天心阁小吃', star: 4, desc: '老街' }], duration: 2, ticket: 32, tip: '含古城墙' },
+        { name: 'IFS国金中心', rank: 7, intro: 'KAWS雕塑打卡点，城市观景台。', coord: [112.976, 28.195], photoSpots: [{ name: 'KAWS雕塑', pose: '楼顶巨型公仔' }], food: [{ name: '楼内美食', star: 4, desc: '高端商场' }], duration: 2, ticket: 0, tip: '7楼空中花园免费' },
+        { name: '铜官窑', rank: 8, intro: '唐代外销瓷窑址，世界釉下彩发源地。', coord: [112.812, 28.375], photoSpots: [{ name: '遗址公园', pose: '古窑体验' }], food: [{ name: '铜官土菜', star: 4, desc: '当地农家' }], duration: 4, ticket: 60, tip: '可体验制陶' },
+        { name: '开福寺', rank: 9, intro: '千年古刹，长沙香火最旺之地。', coord: [112.984, 28.221], photoSpots: [{ name: '大雄宝殿', pose: '红墙古树' }], food: [{ name: '素面', star: 4, desc: '斋饭' }], duration: 1.5, ticket: 0, tip: '免费开放' },
+        { name: '黄兴路步行街', rank: 10, intro: '长沙最繁华商业街。', coord: [112.976, 28.192], photoSpots: [{ name: '步行街中心', pose: '夜市霓虹' }], food: [{ name: '茶颜悦色(总店)', star: 5, desc: '必喝' }], duration: 2, ticket: 0, tip: '与太平街相连' }
+      ],
+      hidden: [
+        { name: '谢子龙影像艺术馆', rank: 11, intro: '清水混凝土建筑，免费摄影艺术殿堂。', trend: '+198% 近3月热度', coord: [112.912, 28.172], photoSpots: [{ name: '极简建筑外观', pose: '建筑线条构图' }], food: [{ name: '馆内咖啡', star: 4, desc: '文艺空间' }], duration: 2, ticket: 0, tip: '需预约周一闭馆' },
+        { name: '白果园', rank: 12, intro: '长沙老城核心巷弄，程潜公馆等历史建筑。', trend: '+134% 近3月热度', coord: [112.974, 28.199], photoSpots: [{ name: '巷弄深处', pose: '老长沙生活' }], food: [{ name: '巷子口粉面', star: 5, desc: '本地老味道' }], duration: 2, ticket: 0, tip: '清晨最有烟火气' },
+        { name: '后湖艺术区', rank: 13, intro: '湖南师大旁的文创社区，独立书店+画廊+手作。', trend: '+112% 近3月热度', coord: [112.940, 28.180], photoSpots: [{ name: '湖边步道', pose: '文艺氛围' }], food: [{ name: '独立咖啡馆', star: 4, desc: '精品手冲' }], duration: 2.5, ticket: 0, tip: '周末市集' }
+      ]
+    },
+    transport: {
+      airport: '长沙黄花国际机场',
+      mainStation: '长沙站/长沙南站',
+      publicTransit: { metroDailyCost: 25, taxiAvg: 18, busCost: 2 },
+      driving: { tollPerDay: 60, fuelPer100km: 60, parking: 30 }
+    },
+    accommodation: {
+      luxury: [
+        { name: '长沙W酒店', loc: '湘江畔', price: 1580, star: 5, perks: '江景设计酒店' },
+        { name: '瑞吉酒店', loc: '国金中心', price: 1880, star: 5, perks: 'CBD核心' },
+        { name: '长沙君悦', loc: '五一商圈', price: 1380, star: 5, perks: '步行至太平街' }
+      ],
+      mid: [
+        { name: '亚朵五一广场店', loc: '五一广场', price: 520, star: 4, perks: '步行至太平街' },
+        { name: '维也纳橘子洲店', loc: '橘子洲', price: 420, star: 4, perks: '近景区' },
+        { name: '全季坡子街店', loc: '坡子街', price: 460, star: 4, perks: '美食一条街' }
+      ],
+      budget: [
+        { name: '汉庭太平街店', loc: '太平街', price: 260, star: 3, perks: '老城核心' },
+        { name: '7天连锁火车站店', loc: '长沙站', price: 200, star: 3, perks: '交通便利' },
+        { name: '如家五一路店', loc: '五一广场', price: 230, star: 3, perks: '商圈地铁口' }
+      ]
+    }
+  },
+
+  '南昌': {
+    code: 'nanchang',
+    province: '江西省',
+    coord: [115.8579, 28.6820],
+    bestSeason: '春秋最佳(3-5月/9-11月)，秋天赏候鸟',
+    routes: {
+      classic: {
+        name: '南昌经典3日',
+        days: 3,
+        tagline: '滕王阁+八一起义+鄱阳湖',
+        spots: ['滕王阁', '八一广场', '绳金塔', '秋水广场', '鄱阳湖'],
+        dayPlan: [
+          { day: 1, theme: '英雄之城', list: ['八一广场', '八一起义纪念馆', '滕王阁', '秋水广场'], hours: 8 },
+          { day: 2, theme: '千年名塔', list: ['绳金塔', '万寿宫', '南昌之星摩天轮'], hours: 7 },
+          { day: 3, theme: '湖光山色', list: ['鄱阳湖(候鸟保护区)', '梅岭'], hours: 9 }
+        ]
+      },
+      niche: {
+        name: '南昌小众2日',
+        days: 2,
+        tagline: '赣江畔的烟火人间',
+        spots: ['万寿宫历史文化街区', '进贤仓', '699文化创意园'],
+        dayPlan: [
+          { day: 1, theme: '老城巷弄', list: ['万寿宫历史街区', '进贤仓', '叠山路'], hours: 7 },
+          { day: 2, theme: '文创漫步', list: ['699文化创意园', '樟树林文化生活公园'], hours: 6 }
+        ]
+      },
+      culture: {
+        name: '南昌人文4日',
+        days: 4,
+        tagline: '物华天宝人杰地灵',
+        spots: ['滕王阁', '八一起义纪念馆', '海昏侯博物馆', '梅岭'],
+        dayPlan: [
+          { day: 1, theme: '千古名篇', list: ['滕王阁', '滕王阁序碑廊'], hours: 5 },
+          { day: 2, theme: '军旗升起', list: ['八一起义纪念馆', '朱德旧居', '贺龙指挥部'], hours: 7 },
+          { day: 3, theme: '海昏侯国', list: ['海昏侯国遗址博物馆(刘贺墓)'], hours: 6 },
+          { day: 4, theme: '西山禅韵', list: ['梅岭', '翠岩禅寺', '狮子峰'], hours: 8 }
+        ]
+      },
+      nature: {
+        name: '南昌生态3日',
+        days: 3,
+        tagline: '鄱阳湖候鸟+梅岭',
+        spots: ['鄱阳湖', '梅岭', '象湖'],
+        dayPlan: [
+          { day: 1, theme: '候鸟天堂', list: ['鄱阳湖候鸟保护区', '吴城古镇'], hours: 9 },
+          { day: 2, theme: '梅岭秋色', list: ['梅岭风景区', '狮子峰', '太平心街'], hours: 8 },
+          { day: 3, theme: '城市绿肺', list: ['象湖公园', '八大山人纪念馆'], hours: 6 }
+        ]
+      }
+    },
+    attractions: {
+      mustSee: [
+        { name: '滕王阁', rank: 1, intro: '江南三大名楼之首，因王勃滕王阁序而名扬天下，落霞与孤鹜齐飞秋水共长天一色。', coord: [115.883, 28.682], photoSpots: [{ name: '阁前广场', pose: '仰拍全楼与蓝天' }, { name: '顶层', pose: '俯瞰赣江+秋水广场' }], food: [{ name: '南昌拌粉', star: 5, desc: '江西早餐标配' }], duration: 2.5, ticket: 45, tip: '夜晚亮灯更壮观' },
+        { name: '八一广场', rank: 2, intro: '南昌起义纪念塔所在，英雄城地标，全国最大城市中心广场之一。', coord: [115.893, 28.677], photoSpots: [{ name: '八一纪念塔', pose: '军旗雕塑前' }], food: [{ name: '瓦罐汤', star: 5, desc: '南昌特色' }], duration: 1.5, ticket: 0, tip: '纪念馆需预约' },
+        { name: '绳金塔', rank: 3, intro: '千年古塔+美食街，南昌镇城之宝，始建于唐代。', coord: [115.880, 28.668], photoSpots: [{ name: '塔前', pose: '古塔全景' }], food: [{ name: '绳金塔美食街', star: 5, desc: '南昌小吃集散地' }, { name: '白糖糕', star: 5, desc: '传统点心' }], duration: 2, ticket: 0, tip: '塔身外观免费，美食街夜市最旺' },
+        { name: '鄱阳湖', rank: 4, intro: '中国第一大淡水湖，冬季白鹤等候鸟数十万只，世界最重要湿地之一。', coord: [116.167, 29.117], photoSpots: [{ name: '候鸟保护区', pose: '万鸟齐飞(冬季)' }], food: [{ name: '鄱阳湖银鱼', star: 5, desc: '时令湖鲜' }], duration: 5, ticket: 45, tip: '11-3月候鸟季最佳' },
+        { name: '秋水广场', rank: 5, intro: '亚洲最大音乐喷泉，赣江畔夜景打卡圣地。', coord: [115.856, 28.668], photoSpots: [{ name: '喷泉全景', pose: '夜晚灯光+水柱' }], food: [{ name: '广场夜市', star: 4, desc: '烧烤小吃' }], duration: 1.5, ticket: 0, tip: '每晚8:00喷泉表演' }
+      ],
+      secondary: [
+        { name: '八一起义纪念馆', rank: 6, intro: '南昌起义总指挥部旧址，军旗升起的地方。', coord: [115.896, 28.681], photoSpots: [{ name: '旧址大门', pose: '红色建筑' }], food: [{ name: '附近赣菜馆', star: 4, desc: '辣椒炒肉' }], duration: 2.5, ticket: 0, tip: '免费需预约' },
+        { name: '海昏侯博物馆', rank: 7, intro: '2015年考古大发现，刘贺墓出土文物万余件。', coord: [115.718, 28.802], photoSpots: [{ name: '金饼展厅', pose: '385枚金饼震撼' }], food: [{ name: '博物馆简餐', star: 3, desc: '内部' }], duration: 3, ticket: 0, tip: '需预约，城北较远' },
+        { name: '梅岭', rank: 8, intro: '南昌后花园，西山国家森林公园。', coord: [115.738, 28.720], photoSpots: [{ name: '狮子峰', pose: '云海日出' }], food: [{ name: '梅岭农家菜', star: 4, desc: '土鸡汤' }], duration: 4, ticket: 30, tip: '自驾1h' },
+        { name: '万寿宫历史街区', rank: 9, intro: '南昌老城改造典范，明清商业街重现。', coord: [115.886, 28.673], photoSpots: [{ name: '牌坊', pose: '古街纵深' }], food: [{ name: '南昌炒粉', star: 5, desc: '锅气十足' }], duration: 2, ticket: 0, tip: '夜市热闹' },
+        { name: '南昌之星', rank: 10, intro: '世界第三高摩天轮160米，俯瞰全城。', coord: [115.830, 28.660], photoSpots: [{ name: '摩天轮', pose: '夜晚LED灯光' }], food: [{ name: '赣江畔餐厅', star: 4, desc: '江景位' }], duration: 1.5, ticket: 50, tip: '日落时段最美' }
+      ],
+      hidden: [
+        { name: '699文化创意园', rank: 11, intro: '废旧厂房改造的文创街区，南昌798。', trend: '+167% 近3月热度', coord: [115.918, 28.672], photoSpots: [{ name: '涂鸦墙', pose: '文艺合影' }], food: [{ name: '园内咖啡', star: 4, desc: '精品店' }], duration: 2, ticket: 0, tip: '周末活动多' },
+        { name: '进贤仓', rank: 12, intro: '南昌最老的街巷之一，清代粮仓遗址。', trend: '+89% 近3月热度', coord: [115.892, 28.685], photoSpots: [{ name: '老巷深处', pose: '烟火日常' }], food: [{ name: '老南昌米粉', star: 5, desc: '清晨必吃' }], duration: 1.5, ticket: 0, tip: '早起最佳' },
+        { name: '八大山人纪念馆', rank: 13, intro: '明末清初画坛巨匠朱耷纪念馆，青云谱道院所在。', trend: '+125% 近3月热度', coord: [115.895, 28.623], photoSpots: [{ name: '道院园林', pose: '古建+荷花(夏)' }], food: [{ name: '素斋', star: 4, desc: '清幽' }], duration: 2, ticket: 0, tip: '周一闭馆' }
+      ]
+    },
+    transport: {
+      airport: '南昌昌北国际机场',
+      mainStation: '南昌站/南昌西站',
+      publicTransit: { metroDailyCost: 20, taxiAvg: 15, busCost: 2 },
+      driving: { tollPerDay: 50, fuelPer100km: 55, parking: 25 }
+    },
+    accommodation: {
+      luxury: [
+        { name: '南昌力高皇冠假日', loc: '红谷滩', price: 980, star: 5, perks: '赣江江景' },
+        { name: '南昌香格里拉', loc: '红谷滩CBD', price: 1180, star: 5, perks: 'CBD核心' },
+        { name: '嘉莱特精典酒店', loc: '八一广场', price: 880, star: 5, perks: '老城中心' }
+      ],
+      mid: [
+        { name: '亚朵滕王阁店', loc: '滕王阁旁', price: 420, star: 4, perks: '步行至滕王阁' },
+        { name: '全季八一广场店', loc: '八一广场', price: 380, star: 4, perks: '地铁直达' },
+        { name: '维也纳绳金塔店', loc: '绳金塔', price: 350, star: 4, perks: '美食街旁' }
+      ],
+      budget: [
+        { name: '汉庭八一广场店', loc: '八一广场', price: 220, star: 3, perks: '核心位置' },
+        { name: '7天连锁火车站店', loc: '南昌站', price: 180, star: 3, perks: '交通便利' },
+        { name: '如家滕王阁店', loc: '滕王阁', price: 200, star: 3, perks: '景区步行圈' }
+      ]
+    }
   }
 };
 

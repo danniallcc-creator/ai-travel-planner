@@ -123,6 +123,10 @@ function extractCity(text) {
   if (text.match(/青岛|崂山|泰山|曲阜|济南|山东|齐鲁|蓬莱/)) return '青岛';
   if (text.match(/厦门|鹭岛|鼓浪屿|土楼|武夷|泉州|福建|闽/)) return '厦门';
   if (text.match(/昆明|春城|大理|丽江|香格里拉|云南|滇|彩云之南|玉龙雪山|洱海/)) return '昆明';
+  // 新增 3 城市
+  if (text.match(/重庆|渝|山城|火锅|洪崖洞|磁器口|武隆|大足/)) return '重庆';
+  if (text.match(/长沙|星城|湘|橘子洲|岳麓|湖南|臭豆腐|茶颜悦色/)) return '长沙';
+  if (text.match(/南昌|豫章|洪都|滕王阁|英雄城|江西|赣/)) return '南昌';
   // 省级回退（不带自驾关键词时，匹配为省会城市）
   if (text.match(/贵州|黔|贵阳|甲秀楼|青岩|黔灵山/)) return null; // 让省级自驾优先捕获
   return null;
