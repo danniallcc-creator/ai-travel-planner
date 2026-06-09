@@ -113,10 +113,10 @@ function extractCity(text) {
   if (text.match(/帝都|北京|京城/)) return '北京';
   if (text.match(/魔都|沪|上海|申城/)) return '上海';
   if (text.match(/蓉|成都|天府|川A|四川/)) return '成都';
-  if (text.match(/杭州|杭城|临安|西湖|浙江|钱塘/)) return '杭州';
+  if (text.match(/杭州|杭城|临安|西湖|钱塘/)) return '杭州';
   if (text.match(/西安|长安|古都|陕西/)) return '西安';
   // 新增 7 城市
-  if (text.match(/太原|平遥|大同|云冈|晋祠|山西|三晋/)) return '太原';
+  if (text.match(/太原|晋祠|山西|三晋/)) return '太原';
   if (text.match(/广州|羊城|花城|穗|岭南|广东|珠三角/)) return '广州';
   if (text.match(/南京|金陵|建康|秣陵|江宁|石头城/)) return '南京';
   if (text.match(/苏州|姑苏|吴中|平江|拙政|江南水乡|江苏/)) return '苏州';
@@ -127,6 +127,26 @@ function extractCity(text) {
   if (text.match(/重庆|渝|山城|火锅|洪崖洞|磁器口|武隆|大足/)) return '重庆';
   if (text.match(/长沙|星城|湘|橘子洲|岳麓|湖南|臭豆腐|茶颜悦色/)) return '长沙';
   if (text.match(/南昌|豫章|洪都|滕王阁|英雄城|江西|赣/)) return '南昌';
+  // 山西省新增9城市
+  if (text.match(/云冈石窟|悬空寺|华严寺|恒山|九龙壁|善化寺/)) return '大同';
+  if (text.match(/平遥古城|乔家大院|王家大院|绵山|张壁古堡|双林寺|镇国寺/)) return '晋中';
+  if (text.match(/五台山|雁门关|芦芽山|万年冰洞|忻州古城/)) return '忻州';
+  if (text.match(/壶口瀑布|尧庙|洪洞大槐树|广胜寺|陶寺遗址|乾坤湾/)) return '临汾';
+  if (text.match(/关帝庙|解州|盐湖|中国死海|鹳雀楼|普救寺|永乐宫|司马光/)) return '运城';
+  if (text.match(/太行山大峡谷|八泉峡|八路军纪念馆|通天峡|上党门|长治/)) return '长治';
+  if (text.match(/皇城相府|王莽岭|蟒河|锡崖沟|青莲寺|珏山/)) return '晋城';
+  if (text.match(/应县木塔|崇福寺|杀虎口|金沙滩|广武古城|朔州/)) return '朔州';
+  if (text.match(/碛口古镇|北武当山|庞泉沟|杏花村|卦山|玄中寺|吕梁/)) return '吕梁';
+  // 浙江省新增9城市
+  if (text.match(/天一阁|东钱湖|溪口|蒋氏故里|天童寺|象山|宁波/)) return '宁波';
+  if (text.match(/鲁迅故里|兰亭|东湖|沈园|安昌古镇|大禹陵|绍兴/)) return '绍兴';
+  if (text.match(/雁荡山|楠溪江|南麂列岛|泰顺廊桥|洞头|温州/)) return '温州';
+  if (text.match(/南浔古镇|莫干山|安吉竹海|下渚湖|湖州/)) return '湖州';
+  if (text.match(/南湖红船|乌镇|西塘|盐官|月河|嘉兴/)) return '嘉兴';
+  if (text.match(/双龙洞|诸葛八卦村|横店影视城|义乌|兰溪地下长河|金华/)) return '金华';
+  if (text.match(/江郎山|廿八都|龙游石窟|根宫佛国|仙霞关|衢州/)) return '衢州';
+  if (text.match(/天台山|国清寺|神仙居|括苍山|临海古城|台州/)) return '台州';
+  if (text.match(/普陀山|朱家尖|嵊泗列岛|东极岛|桃花岛|舟山/)) return '舟山';
   // 省级回退（不带自驾关键词时，匹配为省会城市）
   if (text.match(/贵州|黔|贵阳|甲秀楼|青岩|黔灵山/)) return null; // 让省级自驾优先捕获
   return null;
