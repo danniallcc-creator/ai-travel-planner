@@ -155,8 +155,20 @@ function extractCity(text) {
   if (text.match(/江郎山|廿八都|龙游石窟|根宫佛国|仙霞关|衢州/)) return '衢州';
   if (text.match(/天台山|国清寺|神仙居|括苍山|临海古城|台州/)) return '台州';
   if (text.match(/普陀山|朱家尖|嵊泗列岛|东极岛|桃花岛|舟山/)) return '舟山';
+  // 新疆 10城
+  if (text.match(/天山天池|大巴扎|红山公园|水磨沟|乌鲁木齐/)) return '乌鲁木齐';
+  if (text.match(/赛里木湖|薰衣草|喀赞其|伊犁|伊宁/)) return '伊宁';
+  if (text.match(/喀什古城|艾提尕尔|香妃墓|帕米尔|喀什/)) return '喀什';
+  if (text.match(/魔鬼城|乌尔禾|黑油山|克拉玛依/)) return '克拉玛依';
+  if (text.match(/天山大峡谷|克孜尔千佛洞|库车王府|龟兹|库车/)) return '库车';
+  if (text.match(/喀纳斯|禾木|可可托海|五彩滩|阿勒泰/)) return '阿勒泰';
+  if (text.match(/怪石沟|博尔塔拉|艾比湖|博乐/)) return '博乐';
+  if (text.match(/火焰山|葡萄沟|坎儿井|交河故城|吐鲁番/)) return '吐鲁番';
+  if (text.match(/那拉提草原|空中草原|巩乃斯|那拉提/)) return '那拉提';
+  if (text.match(/军垦博物馆|北湖公园|军垦第一连|石河子/)) return '石河子';
   // 省级回退（不带自驾关键词时，匹配为省会城市）
   if (text.match(/贵州|黔|贵阳|甲秀楼|青岩|黔灵山/)) return null; // 让省级自驾优先捕获
+  if (text.match(/新疆|疆|乌鲁木齐|大美新疆/)) return null; // 让省级自驾优先捕获
   return null;
 }
 
