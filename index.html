@@ -91,7 +91,7 @@ function extractDestination(text) {
   if (window.PROVINCE_DRIVING) {
     for (const [prov, aliases] of Object.entries(window.PROVINCE_ALIASES || {})) {
       const pattern = new RegExp(aliases.join('|'));
-      if (pattern.test(text) && (text.match(/自驾|环线|环游|全省|跨城|多城|省内|周游|穿越|环贵州|游遍|走遍|转一圈/) || text.match(/几个城市|多个.*城市|串.*城市/))) {
+      if (pattern.test(text) && (text.match(/自驾|环线|环游|全省|跨城|多城|省内|周游|穿越|环\S{1,3}游|游遍|走遍|转一圈/) || text.match(/几个城市|多个.*城市|串.*城市/))) {
         return { type: 'province', province: prov };
       }
     }
