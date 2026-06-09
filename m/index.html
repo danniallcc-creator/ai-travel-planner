@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-<head>
+<head><meta name="robots" content="noindex,nofollow"><meta http-equiv="Cache-Control" content="no-store,no-cache">
 <meta charset="UTF-8" />
 <script>
 // UA检测：非移动设备跳转PC版
@@ -19,41 +19,10 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="../data.js"></script>
 <script src="../data-provinces.js"></script>
-<style>
-  body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; font-size: 16px; overflow-x: hidden; -webkit-text-size-adjust: 100%; }
-  input, button, select, textarea { font-size: inherit; }
-  .bg-gradient-hero { background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0c4a6e 100%); }
-  .glow-card { box-shadow: 0 4px 16px rgba(0,0,0,.08), 0 1px 4px rgba(0,0,0,.04); }
-  .typing-cursor::after { content: '|'; animation: blink 1s infinite; color: #60a5fa; }
-  @keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
-  .fade-in { animation: fadeIn .4s ease-out; }
-  @keyframes fadeIn { from {opacity:0;transform:translateY(8px)} to {opacity:1;transform:translateY(0)} }
-  .slide-in { animation: slideIn .3s ease-out; }
-  @keyframes slideIn { from {opacity:0;transform:translateX(-12px)} to {opacity:1;transform:translateX(0)} }
-  .star { color:#fbbf24; }
-  .star-empty { color:#e5e7eb; }
-  .route-classic { background: linear-gradient(135deg, #fef3c7, #fde68a); }
-  .route-niche { background: linear-gradient(135deg, #d1fae5, #a7f3d0); }
-  .route-culture { background: linear-gradient(135deg, #fee2e2, #fecaca); }
-  .route-nature { background: linear-gradient(135deg, #dbeafe, #bfdbfe); }
-  .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 16px); }
-  .nav-bar { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); }
-  /* 隐藏滚动条但保持可滚动 */
-  .scroll-tabs::-webkit-scrollbar { display: none; }
-  .scroll-tabs { -ms-overflow-style: none; scrollbar-width: none; }
-  /* 打印 */
-  .print-only { display: none; }
-  @media print {
-    @page { size: A4; margin: 12mm 10mm; }
-    html, body { background: #fff !important; }
-    body * { visibility: hidden !important; }
-    .print-area, .print-area * { visibility: visible !important; }
-    .print-area { position: absolute !important; top: 0 !important; left: 0 !important; width: 100% !important; padding: 0 !important; margin: 0 !important; box-shadow: none !important; background: #fff !important; color: #000 !important; }
-    .print-only { display: block !important; }
-    .no-print, .no-print * { display: none !important; }
-    .print-day { page-break-inside: avoid; break-inside: avoid; }
-  }
-</style>
+<style>body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;font-size:16px;overflow-x:hidden;-webkit-text-size-adjust:100%;}input,button,select,textarea{font-size:inherit;}.bg-gradient-hero{background:linear-gradient(135deg,#0f172a 0%,#1e293b 50%,#0c4a6e 100%);}.glow-card{box-shadow:0 4px 16px rgba(0,0,0,.08),0 1px 4px rgba(0,0,0,.04);}.typing-cursor::after{content:'|';animation:blink 1s infinite;color:#60a5fa;}@keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}.fade-in{animation:fadeIn .4s ease-out;}@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}.slide-in{animation:slideIn .3s ease-out;}@keyframes slideIn{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:translateX(0)}}.star{color:#fbbf24;}.star-empty{color:#e5e7eb;}.route-classic{background:linear-gradient(135deg,#fef3c7,#fde68a);}.route-niche{background:linear-gradient(135deg,#d1fae5,#a7f3d0);}.route-culture{background:linear-gradient(135deg,#fee2e2,#fecaca);}.route-nature{background:linear-gradient(135deg,#dbeafe,#bfdbfe);}.safe-bottom{padding-bottom:env(safe-area-inset-bottom,16px);}.nav-bar{padding-bottom:calc(env(safe-area-inset-bottom,0px)+8px);}.scroll-tabs::-webkit-scrollbar{display:none;}.scroll-tabs{-ms-overflow-style:none;scrollbar-width:none;}.print-only{display:none;}@media print{@page{size:A4;margin:12mm 10mm;}html,body{background:#fff !important;}body *{visibility:hidden !important;}.print-area,.print-area *{visibility:visible !important;}.print-area{position:absolute !important;top:0 !important;left:0 !important;width:100% !important;padding:0 !important;margin:0 !important;box-shadow:none !important;background:#fff !important;color:#000 !important;}.print-only{display:block !important;}.no-print,.no-print *{display:none !important;}.print-day{page-break-inside:avoid;break-inside:avoid;}}</style>
+<script>
+(function(){document.addEventListener('contextmenu',function(e){e.preventDefault();});document.addEventListener('keydown',function(e){if(e.keyCode===123||(e.ctrlKey&&e.shiftKey&&[73,74,67].includes(e.keyCode))||(e.ctrlKey&&e.keyCode===85)){e.preventDefault();}});setInterval(function(){var _s=performance.now();try{(function(){})['constructor']('debugger')['call']('debugger');}catch(e){}if(performance.now()-_s>100){window.location.href='about:blank';}},4e3);})();
+</script>
 </head>
 <body class="bg-slate-50 min-h-screen pb-20">
 <div id="root"></div>

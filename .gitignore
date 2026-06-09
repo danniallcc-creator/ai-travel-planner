@@ -8,3 +8,8 @@ node_modules/
 dist/
 build/
 .cache/
+node_modules/
+_backup/
+package.json
+package-lock.json
+build.js
