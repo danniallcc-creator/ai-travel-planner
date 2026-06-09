@@ -123,6 +123,27 @@ function extractCity(text) {
   return null;
 }
 
+function extractStartingPoint(text) {
+  if (!text) return null;
+  const patterns = [
+    /从(.+?)(?:出发|去|到)/,
+    /(.+?)出发(?:去|到)/,
+    /在(.+?)(?:出发|去)/,
+    /^从(.+?)去/,
+  ];
+  for (const p of patterns) {
+    const m = text.match(p);
+    if (m) {
+      const cleaned = m[1].replace(/我|想|打算|计划|准备/g, '').trim();
+      if (cleaned) {
+        const city = extractCity(cleaned);
+        return city || cleaned;
+      }
+    }
+  }
+  return null;
+}
+
 function aiEnrich(spot) {
   return {
     bestTime: spot.duration > 4 ? '建议早7:30入园避开人流' : '上午或傍晚光线最佳',
@@ -364,7 +385,7 @@ function NumberInput({ cur, next }) {
   );
 }
 
-function InfoCollector({ city, prompt, onComplete }) {
+function InfoCollector({ city, prompt, startPoint, onComplete }) {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState({});
   const [showCityPicker, setShowCityPicker] = useState(!city);
@@ -411,7 +432,7 @@ function InfoCollector({ city, prompt, onComplete }) {
         ))}
       </div>
       <div className="text-xs text-sky-600 mb-2">
-        第 {step+1}/{Q.length} 步 · {pickedCity}
+        第 {step+1}/{Q.length} 步{startPoint ? ` · 从${startPoint}出发` : ''} · {pickedCity}
       </div>
       <div className="bg-white rounded-2xl p-5 glow-card slide-in" key={step}>
         <div className="text-4xl mb-3">{cur.icon}</div>
@@ -997,7 +1018,7 @@ function EnhancedItinerary({ city, route, prefs, hotelTier, printable }) {
 }
 
 /* ============ 最终方案（长页面，非翻页） ============ */
-function MobileFinalPlan({ city, prefs, route, onRestart }) {
+function MobileFinalPlan({ city, prefs, route, startPoint, onRestart }) {
   const cost = calcRouteCost(prefs, route, city);
   const cityData = window.CITY_DATABASE[city];
 
@@ -1009,7 +1030,8 @@ function MobileFinalPlan({ city, prefs, route, onRestart }) {
         <div className="text-xs opacity-80 mb-1">TravelMind 智能定制</div>
         <h1 className="text-2xl font-bold mb-2">{city} {route.days}日之旅</h1>
         <p className="text-sm opacity-90 mb-4">{route.tagline}</p>
-        <div className="flex gap-4 text-xs justify-center">
+        <div className="flex gap-4 text-xs justify-center flex-wrap">
+          {startPoint && <span>从{startPoint}出发</span>}
           <span>¥{fmt(prefs.budget)}预算</span>
           <span>{COMPANION_LABEL[prefs.companions]}</span>
           <span>{TRANSPORT_LABEL[prefs.transport]}</span>
@@ -1095,7 +1117,7 @@ function MobileFinalPlan({ city, prefs, route, onRestart }) {
 }
 
 /* ============ 完整方案展示页 ============ */
-function FullPlan({ city, prefs, routeKey, onRestart, scrollSection }) {
+function FullPlan({ city, prefs, routeKey, startPoint, onRestart, scrollSection }) {
   const route = { ...window.CITY_DATABASE[city].routes[routeKey], routeKey };
   const [showFinal, setShowFinal] = useState(false);
   const spotsRef = useRef(null);
@@ -1113,7 +1135,7 @@ function FullPlan({ city, prefs, routeKey, onRestart, scrollSection }) {
   }, [scrollSection]);
 
   if (showFinal) {
-    return <MobileFinalPlan city={city} prefs={prefs} route={route} onRestart={onRestart} />;
+    return <MobileFinalPlan city={city} prefs={prefs} route={route} startPoint={startPoint} onRestart={onRestart} />;
   }
 
   return (
@@ -1121,7 +1143,7 @@ function FullPlan({ city, prefs, routeKey, onRestart, scrollSection }) {
       <div className="bg-gradient-to-r from-sky-500 to-indigo-600 text-white rounded-2xl p-4 mb-4">
         <div className="text-xs opacity-80">已为你定制</div>
         <h1 className="text-xl font-bold mt-1">{route.name}</h1>
-        <p className="text-sm opacity-90 mt-1">{route.tagline} · {route.days}天 · {route.spots.length}景点</p>
+        <p className="text-sm opacity-90 mt-1">{route.tagline} · {route.days}天 · {route.spots.length}景点{startPoint ? ` · 从${startPoint}出发` : ''}</p>
       </div>
 
       <EnhancedItinerary
@@ -1157,8 +1179,66 @@ function FullPlan({ city, prefs, routeKey, onRestart, scrollSection }) {
   );
 }
 
+/* ============ 出发地输入 ============ */
+function StartPointInput({ destination, onComplete }) {
+  const [startCity, setStartCity] = useState('');
+  const isProvince = destination.type === 'province';
+  const destName = isProvince ? window.PROVINCE_DRIVING[destination.province]?.name : destination.city;
+  const popularCities = ['北京','上海','广州','深圳','成都','杭州','南京','武汉','西安','重庆'];
+  const provinceCapital = isProvince ? window.PROVINCE_DRIVING[destination.province]?.capital : null;
+
+  return (
+    <div className="px-4 py-8 fade-in">
+      <div className="text-center mb-6">
+        <div className="text-5xl mb-2">📍</div>
+        <h1 className="text-2xl font-bold">你从哪里出发？</h1>
+        <p className="text-slate-500 text-sm mt-1">
+          {isProvince ? `计划前往${destName}自驾游` : `计划前往${destName}旅游`}
+        </p>
+      </div>
+
+      <div className="bg-white rounded-2xl p-5 glow-card">
+        <div className="flex items-center gap-2 mb-4">
+          <input
+            value={startCity}
+            onChange={e => setStartCity(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && startCity.trim() && onComplete(startCity.trim())}
+            placeholder="输入出发城市"
+            className="flex-1 px-4 py-3.5 border-2 border-slate-200 rounded-xl text-base focus:border-sky-500 outline-none min-h-[48px]"
+            autoFocus
+          />
+          <button onClick={() => startCity.trim() && onComplete(startCity.trim())}
+            disabled={!startCity.trim()}
+            className="px-5 py-3.5 bg-sky-500 text-white rounded-xl font-semibold active:bg-sky-600 disabled:opacity-30 min-h-[48px]">
+            下一步
+          </button>
+        </div>
+
+        {isProvince && provinceCapital && (
+          <button onClick={() => onComplete(provinceCapital)}
+            className="w-full mb-4 py-3 text-sm text-sky-600 bg-sky-50 rounded-xl active:bg-sky-100 font-medium">
+            默认从{provinceCapital}出发（省会城市）
+          </button>
+        )}
+
+        <div>
+          <div className="text-xs text-slate-500 mb-2">热门出发城市：</div>
+          <div className="grid grid-cols-5 gap-2">
+            {popularCities.map(c => (
+              <button key={c} onClick={() => onComplete(c)}
+                className="p-2.5 rounded-lg border-2 border-slate-200 active:border-sky-500 active:bg-sky-50 transition text-xs font-medium text-center min-h-[44px]">
+                {c}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ============ 省级自驾游：天数选择 ============ */
-function ProvinceDaysPicker({ province, onSelect }) {
+function ProvinceDaysPicker({ province, startPoint, onSelect }) {
   const pData = window.PROVINCE_DRIVING[province];
   const [days, setDays] = useState(5);
 
@@ -1168,6 +1248,9 @@ function ProvinceDaysPicker({ province, onSelect }) {
         <div className="text-5xl mb-2">🚗</div>
         <h1 className="text-2xl font-bold">{pData.name}自驾游</h1>
         <p className="text-slate-500 text-sm mt-1">{pData.slogan}</p>
+        {startPoint && (
+          <p className="text-sky-600 text-sm mt-1 font-medium">从{startPoint}出发</p>
+        )}
       </div>
 
       <div className="bg-white rounded-2xl glow-card p-5">
@@ -1217,7 +1300,7 @@ function ProvinceDaysPicker({ province, onSelect }) {
 }
 
 /* ============ 省级自驾游方案 ============ */
-function ProvinceDrivingPlan({ province, days, onRestart }) {
+function ProvinceDrivingPlan({ province, days, startPoint, onRestart }) {
   const pData = window.PROVINCE_DRIVING[province];
   const route = useMemo(() => window.generateDrivingRoute(province, days), [province, days]);
   const [hotelTier, setHotelTier] = useState('mid');
@@ -1266,7 +1349,7 @@ function ProvinceDrivingPlan({ province, days, onRestart }) {
       <div className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-2xl p-4 mb-4">
         <div className="text-xs opacity-80">省级自驾路线</div>
         <h1 className="text-xl font-bold mt-1">{route.name}</h1>
-        <p className="text-sm opacity-90 mt-1">{route.cities.length}城 · {totalKm}km</p>
+        <p className="text-sm opacity-90 mt-1">{route.cities.length}城 · {totalKm}km{startPoint ? ` · 从${startPoint}出发` : ''}</p>
       </div>
 
       {/* 酒店档次 */}
@@ -1426,6 +1509,8 @@ function App() {
   const [city, setCity] = useState(null);
   const [prefs, setPrefs] = useState(null);
   const [routeKey, setRouteKey] = useState(null);
+  const [startPoint, setStartPoint] = useState(null);
+  const [destination, setDestination] = useState(null);
   const [province, setProvince] = useState(null);
   const [drivingDays, setDrivingDays] = useState(null);
   const [scrollSection, setScrollSection] = useState(null);
@@ -1436,6 +1521,8 @@ function App() {
     setCity(null);
     setPrefs(null);
     setRouteKey(null);
+    setStartPoint(null);
+    setDestination(null);
     setProvince(null);
     setDrivingDays(null);
     setScrollSection(null);
@@ -1462,31 +1549,56 @@ function App() {
         <HomePage onSubmit={(text) => {
           setPrompt(text);
           const dest = extractDestination(text);
+          const sp = extractStartingPoint(text);
           if (dest && dest.type === 'province') {
             setProvince(dest.province);
-            setStage('province-days');
+            setDestination({ type: 'province', province: dest.province });
+            if (sp) {
+              setStartPoint(sp);
+              setStage('province-days');
+            } else {
+              setStage('start-point');
+            }
           } else {
-            setCity(dest ? dest.city : extractCity(text));
-            setStage('collect');
+            const c = dest ? dest.city : extractCity(text);
+            setCity(c);
+            setDestination({ type: 'city', city: c });
+            if (sp) {
+              setStartPoint(sp);
+              setStage('collect');
+            } else {
+              setStage('start-point');
+            }
           }
         }} />
       )}
+      {stage === 'start-point' && destination && (
+        <StartPointInput destination={destination}
+          onComplete={(sp) => {
+            setStartPoint(sp);
+            if (destination.type === 'province') {
+              setStage('province-days');
+            } else {
+              setStage('collect');
+            }
+          }} />
+      )}
       {stage === 'collect' && (
-        <InfoCollector city={city} prompt={prompt}
-          onComplete={(c, ans) => { setCity(c); setPrefs(ans); setStage('recommend'); }} />
+        <InfoCollector city={city} prompt={prompt} startPoint={startPoint}
+          onComplete={(c, ans) => { setCity(c); setPrefs({ ...ans, startPoint }); setStage('recommend'); }} />
       )}
       {stage === 'recommend' && (
         <RouteRecommendation city={city} prefs={prefs}
           onSelect={(rk) => { setRouteKey(rk); setStage('plan'); window.scrollTo(0, 0); }} />
       )}
       {stage === 'plan' && (
-        <FullPlan city={city} prefs={prefs} routeKey={routeKey} onRestart={reset} scrollSection={scrollSection} />
+        <FullPlan city={city} prefs={prefs} routeKey={routeKey} startPoint={startPoint} onRestart={reset} scrollSection={scrollSection} />
       )}
       {stage === 'province-days' && province && (
-        <ProvinceDaysPicker province={province} onSelect={(d) => { setDrivingDays(d); setStage('province-plan'); window.scrollTo(0, 0); }} />
+        <ProvinceDaysPicker province={province} startPoint={startPoint} onSelect={(d) => { setDrivingDays(d); setStage('province-plan'); window.scrollTo(0, 0); }} />
       )}
       {stage === 'province-plan' && province && drivingDays && (
-        <ProvinceDrivingPlan province={province} days={drivingDays} onRestart={reset} />
+        <ProvinceDrivingPlan province={province} days={drivingDays} startPoint={startPoint} onRestart={reset} />
       )}
 
       <BottomNav stage={stage} onNav={handleNav} />

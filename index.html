@@ -160,6 +160,28 @@ function extractCity(text) {
   return null;
 }
 
+// 从文本中提取出发地
+function extractStartingPoint(text) {
+  if (!text) return null;
+  const patterns = [
+    /从(.+?)(?:出发|去|到)/,
+    /(.+?)出发(?:去|到)/,
+    /在(.+?)(?:出发|去)/,
+    /^从(.+?)去/,
+  ];
+  for (const p of patterns) {
+    const m = text.match(p);
+    if (m) {
+      const cleaned = m[1].replace(/我|想|打算|计划|准备/g, '').trim();
+      if (cleaned) {
+        const city = extractCity(cleaned);
+        return city || cleaned;
+      }
+    }
+  }
+  return null;
+}
+
 // 模拟AI生成详情扩展
 function aiEnrich(spot) {
   // 这里可替换为真实大模型API调用，本期使用预设逻辑
@@ -360,7 +382,7 @@ function NumberInput({ cur, next }) {
   );
 }
 
-function InfoCollector({ city, prompt, onComplete }) {
+function InfoCollector({ city, prompt, startPoint, onComplete }) {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState({});
   const [showCityPicker, setShowCityPicker] = useState(!city);
@@ -409,7 +431,7 @@ function InfoCollector({ city, prompt, onComplete }) {
         ))}
       </div>
       <div className="text-sm text-sky-600 mb-2">
-        第 {step+1}/{Q.length} 步 · 目的地：{pickedCity}
+        第 {step+1}/{Q.length} 步{startPoint ? ` · 从${startPoint}出发` : ''} · 目的地：{pickedCity}
       </div>
 
       <div className="bg-white rounded-2xl p-8 glow-card slide-in" key={step}>
@@ -438,6 +460,62 @@ function InfoCollector({ city, prompt, onComplete }) {
           ← 上一步
         </button>
       )}
+    </div>
+  );
+}
+
+/* ============ 出发地输入 ============ */
+function StartPointInput({ destination, onComplete }) {
+  const [startCity, setStartCity] = useState('');
+  const isProvince = destination.type === 'province';
+  const destName = isProvince ? window.PROVINCE_DRIVING[destination.province]?.name : destination.city;
+  const popularCities = ['北京','上海','广州','深圳','成都','杭州','南京','武汉','西安','重庆','长沙','青岛'];
+  const provinceCapital = isProvince ? window.PROVINCE_DRIVING[destination.province]?.capital : null;
+
+  return (
+    <div className="max-w-3xl mx-auto py-16 px-6">
+      <div className="bg-white rounded-2xl p-8 glow-card slide-in">
+        <div className="text-sm text-sky-600 mb-2">第一步 · 出发地</div>
+        <h2 className="text-2xl font-bold mb-1">你从哪里出发？</h2>
+        <p className="text-slate-500 mb-6">
+          {isProvince ? `计划前往${destName}自驾游` : `计划前往${destName}旅游`}，请告诉我你的出发城市
+        </p>
+
+        <div className="flex items-center gap-3 mb-4">
+          <input
+            value={startCity}
+            onChange={e => setStartCity(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && startCity.trim() && onComplete(startCity.trim())}
+            placeholder="输入出发城市"
+            className="flex-1 px-4 py-3.5 border-2 border-slate-200 rounded-xl text-lg focus:border-sky-500 outline-none transition"
+            autoFocus
+          />
+          <button onClick={() => startCity.trim() && onComplete(startCity.trim())}
+            disabled={!startCity.trim()}
+            className="px-6 py-3.5 bg-sky-500 text-white rounded-xl font-semibold hover:bg-sky-600 disabled:opacity-30 transition min-w-[80px]">
+            下一步
+          </button>
+        </div>
+
+        {isProvince && provinceCapital && (
+          <button onClick={() => onComplete(provinceCapital)}
+            className="text-sm text-sky-600 hover:text-sky-800 mb-4 block">
+            默认从{provinceCapital}出发（省会城市）→
+          </button>
+        )}
+
+        <div className="mt-4">
+          <div className="text-sm text-slate-500 mb-2">热门出发城市：</div>
+          <div className="flex flex-wrap gap-2">
+            {popularCities.map(c => (
+              <button key={c} onClick={() => onComplete(c)}
+                className="px-4 py-2 rounded-lg border-2 border-slate-200 hover:border-sky-500 hover:bg-sky-50 transition text-sm font-medium">
+                {c}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1163,7 +1241,7 @@ function EnhancedItinerary({ city, route, prefs, hotelTier, printable }) {
 }
 
 /* ============ 最终方案输出（翻页效果） ============ */
-function FinalPlanFlipbook({ city, prefs, route, onRestart }) {
+function FinalPlanFlipbook({ city, prefs, route, startPoint, onRestart }) {
   const [page, setPage] = useState(0);
   const cost = calcRouteCost(prefs, route, city);
   const cityData = window.CITY_DATABASE[city];
@@ -1177,7 +1255,8 @@ function FinalPlanFlipbook({ city, prefs, route, onRestart }) {
           <div className="text-sm text-sky-600 mb-2">TravelMind 智能定制方案</div>
           <h1 className="text-4xl font-bold mb-3">{city} {route.days}日{['','经典','小众','人文','自然'][['classic','niche','culture','nature'].indexOf(route.routeKey || 'classic')+1]}之旅</h1>
           <p className="text-slate-500 mb-6 max-w-md">{route.tagline}</p>
-          <div className="flex gap-6 text-sm">
+          <div className="flex gap-6 text-sm flex-wrap">
+            {startPoint && <div><span className="text-slate-400">出发：</span><span className="font-bold">{startPoint}</span></div>}
             <div><span className="text-slate-400">预算：</span><span className="font-bold">¥{fmt(prefs.budget)}</span></div>
             <div><span className="text-slate-400">同行：</span><span className="font-bold">{ {none:'纯成人',kids:'带小孩',elder:'带老人',both:'有老有小'}[prefs.companions] }</span></div>
             <div><span className="text-slate-400">出行：</span><span className="font-bold">{ {public:'公共交通',rentcar:'租车',owncar:'自驾',mixed:'混合'}[prefs.transport] }</span></div>
@@ -1303,12 +1382,12 @@ function FinalPlanFlipbook({ city, prefs, route, onRestart }) {
 }
 
 /* ============ 完整方案展示页 ============ */
-function FullPlan({ city, prefs, routeKey, onRestart }) {
+function FullPlan({ city, prefs, routeKey, startPoint, onRestart }) {
   const route = { ...window.CITY_DATABASE[city].routes[routeKey], routeKey };
   const [showFlipbook, setShowFlipbook] = useState(false);
 
   if (showFlipbook) {
-    return <FinalPlanFlipbook city={city} prefs={prefs} route={route} onRestart={onRestart} />;
+    return <FinalPlanFlipbook city={city} prefs={prefs} route={route} startPoint={startPoint} onRestart={onRestart} />;
   }
 
   return (
@@ -1317,7 +1396,7 @@ function FullPlan({ city, prefs, routeKey, onRestart }) {
         <div>
           <div className="text-sm opacity-80">已为你定制 ✨</div>
           <h1 className="text-3xl font-bold mt-1">{route.name}</h1>
-          <p className="opacity-90 mt-1">{route.tagline} · {route.days}天 · {route.spots.length}个景点</p>
+          <p className="opacity-90 mt-1">{route.tagline} · {route.days}天 · {route.spots.length}个景点{startPoint ? ` · 从${startPoint}出发` : ''}</p>
         </div>
         <button onClick={() => setShowFlipbook(true)} className="px-6 py-3 bg-white text-sky-600 font-bold rounded-xl hover:opacity-90">
           📖 翻页式方案 →
@@ -1352,7 +1431,7 @@ function FullPlan({ city, prefs, routeKey, onRestart }) {
 }
 
 /* ============ 省级自驾游：天数选择 ============ */
-function ProvinceDaysPicker({ province, onSelect }) {
+function ProvinceDaysPicker({ province, startPoint, onSelect }) {
   const pData = window.PROVINCE_DRIVING[province];
   const [days, setDays] = useState(5);
 
@@ -1363,6 +1442,9 @@ function ProvinceDaysPicker({ province, onSelect }) {
         <h1 className="text-3xl font-bold">{pData.name}自驾游</h1>
         <p className="text-slate-500 mt-2">{pData.slogan}</p>
         <p className="text-sm text-slate-400 mt-1">{pData.overview}</p>
+        {startPoint && (
+          <p className="text-sm text-sky-600 mt-2 font-medium">出发地：{startPoint}</p>
+        )}
       </div>
 
       <div className="bg-white rounded-2xl glow-card p-8">
@@ -1411,7 +1493,7 @@ function ProvinceDaysPicker({ province, onSelect }) {
 }
 
 /* ============ 省级自驾游：跨城路线方案 ============ */
-function ProvinceDrivingPlan({ province, days, onRestart }) {
+function ProvinceDrivingPlan({ province, days, startPoint, onRestart }) {
   const pData = window.PROVINCE_DRIVING[province];
   const route = useMemo(() => window.generateDrivingRoute(province, days), [province, days]);
   const [hotelTier, setHotelTier] = useState('mid');
@@ -1447,7 +1529,7 @@ function ProvinceDrivingPlan({ province, days, onRestart }) {
           <div>
             <div className="text-sm opacity-80">🚗 省级自驾路线</div>
             <h1 className="text-3xl font-bold mt-1">{route.name}</h1>
-            <p className="opacity-90 mt-1">{route.tagline} · {route.cities.length}城 · {totalKm}km</p>
+            <p className="opacity-90 mt-1">{route.tagline} · {route.cities.length}城 · {totalKm}km{startPoint ? ` · 从${startPoint}出发` : ''}</p>
           </div>
           <button onClick={onRestart} className="px-5 py-2.5 bg-white text-emerald-600 font-bold rounded-xl hover:opacity-90">
             🔄 重新规划
@@ -1657,11 +1739,13 @@ function ProvinceDrivingPlan({ province, days, onRestart }) {
 
 /* ============ 主应用 ============ */
 function App() {
-  const [stage, setStage] = useState('home'); // home | collect | recommend | plan | province-days | province-plan
+  const [stage, setStage] = useState('home'); // home | start-point | collect | recommend | plan | province-days | province-plan
   const [prompt, setPrompt] = useState('');
   const [city, setCity] = useState(null);
   const [prefs, setPrefs] = useState(null);
   const [routeKey, setRouteKey] = useState(null);
+  const [startPoint, setStartPoint] = useState(null);
+  const [destination, setDestination] = useState(null); // { type: 'city'|'province', city/province }
   // 省级自驾模式
   const [province, setProvince] = useState(null);
   const [drivingDays, setDrivingDays] = useState(null);
@@ -1672,6 +1756,8 @@ function App() {
     setCity(null);
     setPrefs(null);
     setRouteKey(null);
+    setStartPoint(null);
+    setDestination(null);
     setProvince(null);
     setDrivingDays(null);
   };
@@ -1683,31 +1769,56 @@ function App() {
         <HomePage onSubmit={(text) => {
           setPrompt(text);
           const dest = extractDestination(text);
+          const sp = extractStartingPoint(text);
           if (dest && dest.type === 'province') {
             setProvince(dest.province);
-            setStage('province-days');
+            setDestination({ type: 'province', province: dest.province });
+            if (sp) {
+              setStartPoint(sp);
+              setStage('province-days');
+            } else {
+              setStage('start-point');
+            }
           } else {
-            setCity(dest ? dest.city : extractCity(text));
-            setStage('collect');
+            const c = dest ? dest.city : extractCity(text);
+            setCity(c);
+            setDestination({ type: 'city', city: c });
+            if (sp) {
+              setStartPoint(sp);
+              setStage('collect');
+            } else {
+              setStage('start-point');
+            }
           }
         }} />
       )}
+      {stage === 'start-point' && destination && (
+        <StartPointInput destination={destination}
+          onComplete={(sp) => {
+            setStartPoint(sp);
+            if (destination.type === 'province') {
+              setStage('province-days');
+            } else {
+              setStage('collect');
+            }
+          }} />
+      )}
       {stage === 'collect' && (
-        <InfoCollector city={city} prompt={prompt}
-          onComplete={(c, ans) => { setCity(c); setPrefs(ans); setStage('recommend'); }} />
+        <InfoCollector city={city} prompt={prompt} startPoint={startPoint}
+          onComplete={(c, ans) => { setCity(c); setPrefs({ ...ans, startPoint }); setStage('recommend'); }} />
       )}
       {stage === 'recommend' && (
         <RouteRecommendation city={city} prefs={prefs}
           onSelect={(rk) => { setRouteKey(rk); setStage('plan'); }} />
       )}
       {stage === 'plan' && (
-        <FullPlan city={city} prefs={prefs} routeKey={routeKey} onRestart={reset} />
+        <FullPlan city={city} prefs={prefs} routeKey={routeKey} startPoint={startPoint} onRestart={reset} />
       )}
       {stage === 'province-days' && province && (
-        <ProvinceDaysPicker province={province} onSelect={(d) => { setDrivingDays(d); setStage('province-plan'); }} />
+        <ProvinceDaysPicker province={province} startPoint={startPoint} onSelect={(d) => { setDrivingDays(d); setStage('province-plan'); }} />
       )}
       {stage === 'province-plan' && province && drivingDays && (
-        <ProvinceDrivingPlan province={province} days={drivingDays} onRestart={reset} />
+        <ProvinceDrivingPlan province={province} days={drivingDays} startPoint={startPoint} onRestart={reset} />
       )}
 
       <footer className="border-t border-slate-200 py-6 mt-12 text-center text-sm text-slate-400">
