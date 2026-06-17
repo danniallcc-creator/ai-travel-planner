@@ -12,20 +12,19 @@
   }
 })();
 </script>
-<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="https://webapi.amap.com/maps?v=2.0&key=ee15ad5ed2ed7cd9c78c79b6d6fd3f4f"></script>
-<script src="./data.js"></script>
-<script src="./data-provinces.js"></script>
+<script src="./data.js" defer></script>
+<script src="./data-provinces.js" defer></script>
 <style>body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;}.bg-gradient-hero{background:linear-gradient(135deg,#0f172a 0%,#1e293b 50%,#0c4a6e 100%);}.glow-card{box-shadow:0 8px 32px rgba(0,0,0,.12),0 2px 8px rgba(0,0,0,.06);transition:all .3s ease;}.glow-card:hover{transform:translateY(-4px);box-shadow:0 16px 48px rgba(0,0,0,.18),0 4px 12px rgba(0,0,0,.1);}.typing-cursor::after{content:'▎';animation:blink 1s infinite;color:#60a5fa;}@keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}.fade-in{animation:fadeIn .5s ease-out;}@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}.slide-in{animation:slideIn .4s ease-out;}@keyframes slideIn{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:translateX(0)}}.flipbook-stage{perspective:2400px;}.flipbook-page{transform-style:preserve-3d;transition:transform .9s cubic-bezier(.34,.06,.27,.99);transform-origin:left center;backface-visibility:hidden;}.flipbook-page.flipped{transform:rotateY(-180deg);}.page-shadow{box-shadow:8px 0 24px -8px rgba(0,0,0,.4),inset -16px 0 32px -24px rgba(0,0,0,.3);}::-webkit-scrollbar{width:8px;height:8px;}::-webkit-scrollbar-track{background:#f1f5f9;}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px;}::-webkit-scrollbar-thumb:hover{background:#94a3b8;}.amap-container{width:100%;height:100%;border-radius:12px;overflow:hidden;}.star{color:#fbbf24;}.star-empty{color:#e5e7eb;}.route-classic{background:linear-gradient(135deg,#fef3c7,#fde68a);}.route-niche{background:linear-gradient(135deg,#d1fae5,#a7f3d0);}.route-culture{background:linear-gradient(135deg,#fee2e2,#fecaca);}.route-nature{background:linear-gradient(135deg,#dbeafe,#bfdbfe);}.print-only{display:none;}@media print{@page{size:A4;margin:12mm 10mm;}html,body{background:#fff !important;}body *{visibility:hidden !important;}.print-area,.print-area *{visibility:visible !important;}.print-area{position:absolute !important;top:0 !important;left:0 !important;width:100% !important;padding:0 !important;margin:0 !important;box-shadow:none !important;background:#fff !important;color:#000 !important;}.print-only{display:block !important;}.no-print,.no-print *{display:none !important;}.print-day{page-break-inside:avoid;break-inside:avoid;}}</style>
 <script>
-(function(){var _c=['debugger','constructor','call'];setInterval(function(){var _s=performance.now();try{(function(){})[_c[1]](_c[0])[_c[2]](_c[0]);}catch(e){}if(performance.now()-_s>100){document.body.innerHTML='';window.location.href='about:blank';}},3e3);document.addEventListener('contextmenu',function(e){e.preventDefault();});document.addEventListener('keydown',function(e){if(e.keyCode===123||(e.ctrlKey&&e.shiftKey&&[73,74,67].includes(e.keyCode))||(e.ctrlKey&&e.keyCode===85)||(e.ctrlKey&&e.keyCode===83)){e.preventDefault();return false;}});document.addEventListener('selectstart',function(e){if(!['INPUT','TEXTAREA'].includes(e.target.tagName))e.preventDefault();});})();
+(function(){document.addEventListener('contextmenu',function(e){e.preventDefault();});document.addEventListener('keydown',function(e){if(e.keyCode===123||(e.ctrlKey&&e.shiftKey&&[73,74,67].includes(e.keyCode))||(e.ctrlKey&&e.keyCode===85)||(e.ctrlKey&&e.keyCode===83)){e.preventDefault();return false;}});document.addEventListener('selectstart',function(e){if(!['INPUT','TEXTAREA'].includes(e.target.tagName))e.preventDefault();});})();
 </script>
 </head>
 <body class="bg-slate-50 min-h-screen">
-<div id="root"></div>
+<div id="root"><div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;color:#94a3b8;font-size:15px;"><div style="font-size:36px;margin-bottom:12px;">&#9992;</div><div>AI旅游规划师加载中...</div></div></div>
 
 <script type="text/babel" data-presets="env,react">
 const { useState, useEffect, useRef, useMemo, useCallback } = React;
@@ -33,6 +32,15 @@ const { useState, useEffect, useRef, useMemo, useCallback } = React;
 /* ============ 工具函数 ============ */
 const fmt = n => Number(n).toLocaleString('zh-CN');
 const stars = n => '★'.repeat(n) + '☆'.repeat(5-n);
+
+// 高德地图 SDK 懒加载
+const loadAMap = () => new Promise((resolve) => {
+  if (window.AMap) return resolve();
+  const s = document.createElement('script');
+  s.src = 'https://webapi.amap.com/maps?v=2.0&key=ee15ad5ed2ed7cd9c78c79b6d6fd3f4f';
+  s.onload = resolve;
+  document.head.appendChild(s);
+});
 
 // 从对话文本提取目的地（支持省级自驾识别）
 function extractDestination(text) {
@@ -532,8 +540,11 @@ function RouteDetail({ city, routeKey, prefs, onConfirm }) {
   const mapInstance = useRef(null);
 
   useEffect(() => {
-    if (!window.AMap || !mapRef.current) return;
-    if (mapInstance.current) { mapInstance.current.destroy(); mapInstance.current = null; }
+    if (!mapRef.current) return;
+    let destroyed = false;
+    loadAMap().then(() => {
+      if (destroyed || !window.AMap || !mapRef.current) return;
+      if (mapInstance.current) { mapInstance.current.destroy(); mapInstance.current = null; }
     const allSpots = [
       ...cityData.attractions.mustSee,
       ...cityData.attractions.secondary,
@@ -564,6 +575,8 @@ function RouteDetail({ city, routeKey, prefs, onConfirm }) {
       new window.AMap.Polyline({ map, path, strokeColor: '#0ea5e9', strokeWeight: 3, strokeStyle: 'dashed' });
     }
     map.setFitView();
+    });
+    return () => { destroyed = true; };
   }, [routeKey, city]);
 
   // 一键导入高德
@@ -1788,7 +1801,20 @@ function App() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+// 等待 defer 加载的 data.js/data-provinces.js 就绪后再渲染
+(function boot() {
+  if (window.CITY_DATABASE) {
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  } else {
+    var t0 = Date.now();
+    var id = setInterval(function() {
+      if (window.CITY_DATABASE || Date.now() - t0 > 10000) {
+        clearInterval(id);
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+      }
+    }, 50);
+  }
+})();
 </script>
 </body>
 </html>
