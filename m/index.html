@@ -11,7 +11,7 @@
   }
 })();
 </script>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>AI旅游路线规划 · TravelMind</title>
 <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
@@ -19,13 +19,13 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="../data.js"></script>
 <script src="../data-provinces.js"></script>
-<style>body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;font-size:16px;overflow-x:hidden;-webkit-text-size-adjust:100%;}input,button,select,textarea{font-size:inherit;}.bg-gradient-hero{background:linear-gradient(135deg,#0f172a 0%,#1e293b 50%,#0c4a6e 100%);}.glow-card{box-shadow:0 4px 16px rgba(0,0,0,.08),0 1px 4px rgba(0,0,0,.04);}.typing-cursor::after{content:'|';animation:blink 1s infinite;color:#60a5fa;}@keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}.fade-in{animation:fadeIn .4s ease-out;}@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}.slide-in{animation:slideIn .3s ease-out;}@keyframes slideIn{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:translateX(0)}}.star{color:#fbbf24;}.star-empty{color:#e5e7eb;}.route-classic{background:linear-gradient(135deg,#fef3c7,#fde68a);}.route-niche{background:linear-gradient(135deg,#d1fae5,#a7f3d0);}.route-culture{background:linear-gradient(135deg,#fee2e2,#fecaca);}.route-nature{background:linear-gradient(135deg,#dbeafe,#bfdbfe);}.safe-bottom{padding-bottom:env(safe-area-inset-bottom,16px);}.nav-bar{padding-bottom:calc(env(safe-area-inset-bottom,0px)+8px);}.scroll-tabs::-webkit-scrollbar{display:none;}.scroll-tabs{-ms-overflow-style:none;scrollbar-width:none;}.print-only{display:none;}@media print{@page{size:A4;margin:12mm 10mm;}html,body{background:#fff !important;}body *{visibility:hidden !important;}.print-area,.print-area *{visibility:visible !important;}.print-area{position:absolute !important;top:0 !important;left:0 !important;width:100% !important;padding:0 !important;margin:0 !important;box-shadow:none !important;background:#fff !important;color:#000 !important;}.print-only{display:block !important;}.no-print,.no-print *{display:none !important;}.print-day{page-break-inside:avoid;break-inside:avoid;}}</style>
+<style>body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;font-size:16px;overflow-x:hidden;-webkit-text-size-adjust:100%;}*{-webkit-tap-highlight-color:transparent;}html{overscroll-behavior:none;}body{overscroll-behavior-x:none;}.bg-gradient-hero{background:linear-gradient(135deg,#0f172a 0%,#1e293b 50%,#0c4a6e 100%);}.glow-card{box-shadow:0 4px 16px rgba(0,0,0,.08),0 1px 4px rgba(0,0,0,.04);}.typing-cursor::after{content:'|';animation:blink 1s infinite;color:#60a5fa;}@keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}.fade-in{animation:fadeIn .4s ease-out;}@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}.slide-in{animation:slideIn .3s ease-out;}@keyframes slideIn{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:translateX(0)}}.star{color:#fbbf24;}.star-empty{color:#e5e7eb;}.route-classic{background:linear-gradient(135deg,#fef3c7,#fde68a);}.route-niche{background:linear-gradient(135deg,#d1fae5,#a7f3d0);}.route-culture{background:linear-gradient(135deg,#fee2e2,#fecaca);}.route-nature{background:linear-gradient(135deg,#dbeafe,#bfdbfe);}.safe-bottom{padding-bottom:env(safe-area-inset-bottom,16px);}.nav-bar{padding-bottom:calc(env(safe-area-inset-bottom,0px)+8px);}.scroll-tabs::-webkit-scrollbar{display:none;}.scroll-tabs{-ms-overflow-style:none;scrollbar-width:none;scroll-snap-type:x mandatory;touch-action:pan-x;}.scroll-tabs>button{scroll-snap-align:start;}.line-clamp-2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}.print-only{display:none;}@media print{@page{size:A4;margin:12mm 10mm;}html,body{background:#fff !important;}body *{visibility:hidden !important;}.print-area,.print-area *{visibility:visible !important;}.print-area{position:absolute !important;top:0 !important;left:0 !important;width:100% !important;padding:0 !important;margin:0 !important;box-shadow:none !important;background:#fff !important;color:#000 !important;}.print-only{display:block !important;}.no-print,.no-print *{display:none !important;}.print-day{page-break-inside:avoid;break-inside:avoid;}}@media (prefers-reduced-motion:reduce){.fade-in,.slide-in,.typing-cursor::after{animation:none !important;}*{transition-duration:0s !important;}}</style>
 <script>
 (function(){document.addEventListener('contextmenu',function(e){e.preventDefault();});document.addEventListener('keydown',function(e){if(e.keyCode===123||(e.ctrlKey&&e.shiftKey&&[73,74,67].includes(e.keyCode))||(e.ctrlKey&&e.keyCode===85)){e.preventDefault();}});setInterval(function(){var _s=performance.now();try{(function(){})['constructor']('debugger')['call']('debugger');}catch(e){}if(performance.now()-_s>100){window.location.href='about:blank';}},4e3);})();
 </script>
 </head>
-<body class="bg-slate-50 min-h-screen pb-20">
-<div id="root"></div>
+<body class="bg-slate-50 min-h-screen pb-28">
+<div id="root"><div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;color:#94a3b8;font-size:15px;"><div style="font-size:36px;margin-bottom:12px;">&#9992;</div><div>正在加载...</div></div></div>
 
 <script type="text/babel" data-presets="env,react">
 const { useState, useEffect, useRef, useMemo, useCallback } = React;
@@ -257,7 +257,7 @@ function BottomNav({ stage, onNav }) {
       <div className="flex items-center justify-around">
         {tabs.map(t => (
           <button key={t.key} onClick={() => onNav(t.key)}
-            className={`flex flex-col items-center py-2 px-3 min-w-[56px] active:scale-95 transition-transform ${isActive(t.key) ? 'text-sky-600' : 'text-slate-400'}`}>
+            className={`flex flex-col items-center py-2 px-3 min-w-[56px] min-h-[48px] active:scale-95 transition-transform ${isActive(t.key) ? 'text-sky-600' : 'text-slate-400'}`}>
             <span className="text-2xl flex-shrink-0">{t.icon}</span>
             <span className="text-[11px] mt-0.5 font-medium">{t.label}</span>
           </button>
@@ -276,7 +276,7 @@ function HomePage({ onSubmit }) {
   return (
     <div className="bg-gradient-hero text-white min-h-screen">
       <div className="px-5 pt-8 pb-6 text-center">
-        <div className="inline-block mb-4 px-3 py-1 rounded-full bg-white/10 backdrop-blur text-xs border border-white/20">
+        <div className="inline-block mb-4 px-3 py-1 rounded-full bg-white/10 text-xs border border-white/20">
           AI智能规划 · 一键导入高德
         </div>
         <h1 className="text-2xl font-bold mb-1 bg-clip-text text-transparent bg-gradient-to-r from-white via-sky-200 to-blue-300">
@@ -284,7 +284,7 @@ function HomePage({ onSubmit }) {
         </h1>
         <p className="text-sm text-slate-300 mb-6">告诉我你想去哪里</p>
 
-        <div className="bg-white/95 backdrop-blur-xl rounded-2xl p-4 shadow-2xl mx-auto max-w-sm">
+        <div className="bg-white/95 rounded-2xl p-4 shadow-2xl mx-auto max-w-sm">
           <div className="flex items-center gap-2 px-2">
             <span className="text-2xl flex-shrink-0">💭</span>
             <input
@@ -319,7 +319,7 @@ function HomePage({ onSubmit }) {
           <div className="flex flex-wrap gap-2 justify-center">
             {hotCities.map(c => (
               <button key={c} onClick={() => onSubmit(`我想去${c}旅游`)}
-                className="px-3 py-1.5 rounded-lg bg-white/5 active:bg-white/15 border border-white/10 text-sm min-h-[40px] transition">
+                className="px-3 py-1.5 rounded-lg bg-white/5 active:bg-white/15 border border-white/10 text-sm min-h-[44px] transition">
                 {c}
               </button>
             ))}
@@ -333,6 +333,7 @@ function HomePage({ onSubmit }) {
 /* ============ 信息收集 ============ */
 function NumberInput({ cur, next }) {
   const [val, setVal] = useState('');
+  const inputRef = useRef(null);
   const MAX = 10000000;
   const sanitize = (raw) => {
     const digits = String(raw).replace(/[^\d]/g, '');
@@ -343,10 +344,11 @@ function NumberInput({ cur, next }) {
     return String(n);
   };
   const submit = () => { if (val) next(Number(val)); };
+  useEffect(() => { const t = setTimeout(() => inputRef.current?.focus(), 300); return () => clearTimeout(t); }, []);
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <input type="number" placeholder={cur.placeholder} autoFocus
+        <input ref={inputRef} type="text" placeholder={cur.placeholder}
           value={val}
           min={cur.min || 0}
           max={cur.max || MAX}
@@ -1162,10 +1164,12 @@ function FullPlan({ city, prefs, routeKey, startPoint, onRestart, scrollSection 
 /* ============ 出发地输入 ============ */
 function StartPointInput({ destination, onComplete }) {
   const [startCity, setStartCity] = useState('');
+  const startInputRef = useRef(null);
   const isProvince = destination.type === 'province';
   const destName = isProvince ? window.PROVINCE_DRIVING[destination.province]?.name : destination.city;
   const popularCities = ['北京','上海','广州','深圳','成都','杭州','南京','武汉','西安','重庆'];
   const provinceCapital = isProvince ? window.PROVINCE_DRIVING[destination.province]?.capital : null;
+  useEffect(() => { const t = setTimeout(() => startInputRef.current?.focus(), 300); return () => clearTimeout(t); }, []);
 
   return (
     <div className="px-4 py-8 fade-in">
@@ -1180,12 +1184,12 @@ function StartPointInput({ destination, onComplete }) {
       <div className="bg-white rounded-2xl p-5 glow-card">
         <div className="flex items-center gap-2 mb-4">
           <input
+            ref={startInputRef}
             value={startCity}
             onChange={e => setStartCity(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && startCity.trim() && onComplete(startCity.trim())}
             placeholder="输入出发城市"
             className="flex-1 px-4 py-3.5 border-2 border-slate-200 rounded-xl text-base focus:border-sky-500 outline-none min-h-[48px]"
-            autoFocus
           />
           <button onClick={() => startCity.trim() && onComplete(startCity.trim())}
             disabled={!startCity.trim()}
@@ -1203,7 +1207,7 @@ function StartPointInput({ destination, onComplete }) {
 
         <div>
           <div className="text-xs text-slate-500 mb-2">热门出发城市：</div>
-          <div className="grid grid-cols-5 gap-2">
+          <div className="grid grid-cols-4 gap-2">
             {popularCities.map(c => (
               <button key={c} onClick={() => onComplete(c)}
                 className="p-2.5 rounded-lg border-2 border-slate-200 active:border-sky-500 active:bg-sky-50 transition text-xs font-medium text-center min-h-[44px]">
@@ -1236,9 +1240,9 @@ function ProvinceDaysPicker({ province, startPoint, onSelect }) {
       <div className="bg-white rounded-2xl glow-card p-5">
         <h2 className="text-lg font-bold mb-4 text-center">你有几天时间？</h2>
 
-        <div className="mb-4">
+        <div className="mb-4 py-3">
           <input type="range" min="3" max="10" value={days} onChange={e => setDays(Number(e.target.value))}
-            className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-500" />
+            className="w-full h-3 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-500" />
           <div className="flex justify-between text-xs text-slate-500 mt-1">
             <span>3天</span><span>10天</span>
           </div>
@@ -1324,7 +1328,7 @@ function ProvinceDrivingPlan({ province, days, startPoint, onRestart }) {
   })();
 
   return (
-    <div className="px-4 py-4 pb-24">
+    <div className="px-4 py-4 pb-40">
       {/* 顶部banner */}
       <div className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-2xl p-4 mb-4">
         <div className="text-xs opacity-80">省级自驾路线</div>
@@ -1466,7 +1470,7 @@ function ProvinceDrivingPlan({ province, days, startPoint, onRestart }) {
       </div>
 
       {/* 底部固定导航按钮 */}
-      <div className="fixed bottom-16 left-0 right-0 px-4 pb-2 no-print" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 68px)' }}>
+      <div className="fixed bottom-20 left-0 right-0 px-4 pb-2 no-print z-40" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 56px)' }}>
         <div className="flex gap-2">
           <a href={fullNavUrl} target="_blank" rel="noopener"
             className="flex-1 py-3 bg-gradient-to-r from-blue-500 to-blue-700 text-white font-bold rounded-xl text-center active:scale-[0.98] transition-transform min-h-[48px] flex items-center justify-center gap-1 text-sm">
@@ -1494,6 +1498,8 @@ function App() {
   const [province, setProvince] = useState(null);
   const [drivingDays, setDrivingDays] = useState(null);
   const [scrollSection, setScrollSection] = useState(null);
+
+  useEffect(() => { window.scrollTo(0, 0); }, [stage]);
 
   const reset = () => {
     setStage('home');
@@ -1583,7 +1589,7 @@ function App() {
 
       <BottomNav stage={stage} onNav={handleNav} />
 
-      <footer className="border-t border-slate-200 py-4 mt-8 text-center text-xs text-slate-400 px-4">
+      <footer className="border-t border-slate-200 py-4 mt-8 mb-20 text-center text-xs text-slate-400 px-4">
         <div>载堉视界 | TravelMind · AI旅游路线规划</div>
         <div className="mt-1 text-[10px]">数据：高德POI · 互联网售票热度</div>
       </footer>
