@@ -1358,6 +1358,21 @@ function EnhancedItinerary({ city, route, prefs, hotelTier, printable, onRouteCh
         ))}
       </div>
 
+      {/* 添加天数按钮 */}
+      {onRouteChange && (
+        <div className="no-print flex justify-center my-4">
+          <button onClick={() => {
+            const nd = route.days + 1;
+            const last = route.dayPlan[route.dayPlan.length - 1];
+            const newDay = { day: nd, theme: '自由活动', list: last ? last.list.slice(0,1) : [], hours: 4 };
+            onRouteChange({ ...route, days: nd, dayPlan: [...route.dayPlan, newDay], spots: [...route.spots, ...(last ? last.list.slice(0,1) : [])] });
+          }}
+            className="px-5 py-2.5 border-2 border-dashed border-sky-300 text-sky-600 rounded-xl hover:bg-sky-50 hover:border-sky-500 transition font-semibold text-sm flex items-center gap-2">
+            + 添加一天
+          </button>
+        </div>
+      )}
+
       {/* 合计 */}
       <div className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-sky-50 rounded-lg p-3 text-center"><div className="text-xs text-slate-500">总路程</div><div className="text-lg font-bold text-sky-700">{totalDist.toFixed(1)} km</div></div>
