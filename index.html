@@ -1062,13 +1062,30 @@ function resolveSpotByName(city, spotName) {
 const COMPANION_LABEL = { none: '纯成人', kids: '带小孩', elder: '带老人', both: '老人小孩同行' };
 const TRANSPORT_LABEL = { public: '公共交通', rentcar: '租车自驾', owncar: '自驾', mixed: '混合方式' };
 const PREF_LABEL = { hot: '热门优先', niche: '小众优先', both: '热门+小众兼顾' };
+const COMPANION_KEYS = Object.fromEntries(Object.entries(COMPANION_LABEL).map(([k,v]) => [v,k]));
+const TRANSPORT_KEYS = Object.fromEntries(Object.entries(TRANSPORT_LABEL).map(([k,v]) => [v,k]));
+const PREF_KEYS = Object.fromEntries(Object.entries(PREF_LABEL).map(([k,v]) => [v,k]));
 
-/* ============ 整合行程概要（必玩+酒店+区间耗时费用） ============ */
-function EnhancedItinerary({ city, route, prefs, hotelTier, printable }) {
+/* ============ 整合行程概要（必玩+酒店+区间耗时费用）- 可交互编辑版 ============ */
+function EnhancedItinerary({ city, route, prefs, hotelTier, printable, onRouteChange, onPrefsChange }) {
   const cityData = window.CITY_DATABASE[city];
-  const tier = hotelTier || (prefs.budget < 3000 ? 'budget' : prefs.budget < 6000 ? 'mid' : 'luxury');
+  const [localTier, setLocalTier] = useState(hotelTier || (prefs.budget < 3000 ? 'budget' : prefs.budget < 6000 ? 'mid' : 'luxury'));
+  const [customHotel, setCustomHotel] = useState(null);
+  const [showCustomForm, setShowCustomForm] = useState(false);
+  const [customForm, setCustomForm] = useState({name:'',price:'',loc:''});
+  const [swapSpotFor, setSwapSpotFor] = useState(null); // {dayIdx, spotIdx}
+
+  const tier = localTier;
   const tierLabel = { luxury: '高档', mid: '中档', budget: '经济型' }[tier];
-  const recommendedHotel = cityData.accommodation[tier][0]; // 主推第一家
+  const activeHotel = customHotel || cityData.accommodation[tier][0];
+
+  // 所有景点
+  const allSpots = [
+    ...cityData.attractions.mustSee,
+    ...cityData.attractions.secondary,
+    ...cityData.attractions.hidden
+  ];
+  const routeSpotNames = new Set(route.spots);
 
   // 整体合计
   let totalDist = 0, totalTransitMin = 0, totalTransitCost = 0, totalTicket = 0;
@@ -1094,57 +1111,171 @@ function EnhancedItinerary({ city, route, prefs, hotelTier, printable }) {
   });
 
   const hotelTotalNights = Math.max(0, route.days - 1);
-  const hotelTotalCost = recommendedHotel.price * hotelTotalNights;
+  const hotelTotalCost = activeHotel.price * hotelTotalNights;
+
+  const handleSwapSpot = (dayIdx, spotIdx, newSpotName) => {
+    const newDayPlan = route.dayPlan.map((d, di) => {
+      if (di !== dayIdx) return d;
+      const newList = [...d.list];
+      newList[spotIdx] = newSpotName;
+      return { ...d, list: newList };
+    });
+    onRouteChange({ ...route, dayPlan: newDayPlan, spots: newDayPlan.flatMap(d => d.list) });
+    setSwapSpotFor(null);
+  };
 
   return (
     <div className={`bg-white rounded-2xl ${printable ? 'p-8' : 'p-6 glow-card'} mb-6 print-area`}>
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <div>
-          <div className="text-xs text-sky-600 mb-1">📅 行程概要 · 一目了然</div>
+          <div className="text-xs text-sky-600 mb-1">行程概要 · 一目了然</div>
           <h2 className="text-2xl font-bold">{city} · {route.name}</h2>
           <div className="text-xs text-slate-500 mt-1">{route.tagline}</div>
         </div>
-        <button
-          onClick={() => window.print()}
+        <button onClick={() => window.print()}
           className="no-print px-4 py-2 text-sm bg-rose-500 text-white rounded-lg hover:bg-rose-600 font-semibold">
-          📄 一键打印 / 保存为 PDF
+          一键打印 / 保存为 PDF
         </button>
       </div>
 
-      {/* 概要条 */}
+      {/* 概要条 - 可编辑 */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-5 text-xs">
-        <div className="bg-slate-50 rounded-lg p-2"><span className="text-slate-400">天数 </span><b>{route.days} 天</b></div>
-        <div className="bg-slate-50 rounded-lg p-2"><span className="text-slate-400">同行 </span><b>{COMPANION_LABEL[prefs.companions]}</b></div>
-        <div className="bg-slate-50 rounded-lg p-2"><span className="text-slate-400">出行 </span><b>{TRANSPORT_LABEL[prefs.transport]}</b></div>
-        <div className="bg-slate-50 rounded-lg p-2"><span className="text-slate-400">偏好 </span><b>{PREF_LABEL[prefs.preference] || '兼顾'}</b></div>
-        <div className="bg-slate-50 rounded-lg p-2"><span className="text-slate-400">预算 </span><b>¥{fmt(prefs.budget)}</b></div>
+        <div className="bg-slate-50 rounded-lg p-2">
+          <span className="text-slate-400">天数 </span>
+          {onRouteChange ? (
+            <input type="number" min="1" max="15" value={route.days}
+              onChange={e => {
+                const nd = Math.max(1, Math.min(15, parseInt(e.target.value)||1));
+                let dp = route.dayPlan.slice(0, nd);
+                while (dp.length < nd) {
+                  const last = dp[dp.length-1];
+                  dp.push({day:dp.length+1, theme:'自由活动', list:last?last.list.slice(0,1):[], hours:4});
+                }
+                onRouteChange({...route, days:nd, dayPlan:dp, spots:dp.flatMap(d=>d.list)});
+              }}
+              className="w-12 px-1 py-0.5 border rounded text-center font-bold outline-none focus:border-sky-500" />
+          ) : <b>{route.days} 天</b>}
+        </div>
+        <div className="bg-slate-50 rounded-lg p-2">
+          <span className="text-slate-400">同行 </span>
+          {onPrefsChange ? (
+            <select value={prefs.companions} onChange={e => onPrefsChange({...prefs, companions:e.target.value})}
+              className="bg-transparent font-bold outline-none text-xs pr-1">
+              {Object.entries(COMPANION_LABEL).map(([k,v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+          ) : <b>{COMPANION_LABEL[prefs.companions]}</b>}
+        </div>
+        <div className="bg-slate-50 rounded-lg p-2">
+          <span className="text-slate-400">出行 </span>
+          {onPrefsChange ? (
+            <select value={prefs.transport} onChange={e => onPrefsChange({...prefs, transport:e.target.value})}
+              className="bg-transparent font-bold outline-none text-xs pr-1">
+              {Object.entries(TRANSPORT_LABEL).map(([k,v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+          ) : <b>{TRANSPORT_LABEL[prefs.transport]}</b>}
+        </div>
+        <div className="bg-slate-50 rounded-lg p-2">
+          <span className="text-slate-400">偏好 </span>
+          {onPrefsChange ? (
+            <select value={prefs.preference} onChange={e => onPrefsChange({...prefs, preference:e.target.value})}
+              className="bg-transparent font-bold outline-none text-xs pr-1">
+              {Object.entries(PREF_LABEL).map(([k,v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+          ) : <b>{PREF_LABEL[prefs.preference] || '兼顾'}</b>}
+        </div>
+        <div className="bg-slate-50 rounded-lg p-2">
+          <span className="text-slate-400">预算 </span>
+          {onPrefsChange ? (
+            <span>
+              <span className="text-slate-400">¥</span>
+              <input type="number" min="500" step="500" value={prefs.budget}
+                onChange={e => onPrefsChange({...prefs, budget:parseInt(e.target.value)||prefs.budget})}
+                className="w-16 px-1 py-0.5 border rounded text-center font-bold outline-none focus:border-sky-500" />
+            </span>
+          ) : <b>¥{fmt(prefs.budget)}</b>}
+        </div>
       </div>
 
-      {/* 推荐住宿（顶部主推） */}
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-5">
+      {/* 住宿区域 - 三档切换 + 手动添加 */}
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5">
+        <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+          <div className="text-xs text-amber-700 font-semibold">住宿攻略 - 选择档次或手动添加</div>
+          <div className="flex gap-1.5 no-print">
+            {['budget','mid','luxury'].map(t => (
+              <button key={t} onClick={() => { setLocalTier(t); setCustomHotel(null); }}
+                className={`px-2.5 py-1 text-xs rounded-full border transition ${tier===t && !customHotel ? 'bg-amber-500 text-white border-amber-500 font-bold' : 'bg-white border-slate-200 text-slate-600 hover:border-amber-400'}`}>
+                {t==='luxury' ? '高档' : t==='mid' ? '中档' : '经济'}
+              </button>
+            ))}
+            <button onClick={() => setShowCustomForm(!showCustomForm)}
+              className={`px-2.5 py-1 text-xs rounded-full border transition ${customHotel ? 'bg-sky-500 text-white border-sky-500 font-bold' : 'bg-white border-sky-300 text-sky-600 hover:bg-sky-50'}`}>
+              + 手动添加
+            </button>
+          </div>
+        </div>
+
+        {showCustomForm && !customHotel && (
+          <div className="mb-3 p-3 bg-white rounded-lg border border-slate-200 fade-in no-print">
+            <div className="text-xs text-slate-500 mb-2">输入自定义酒店信息</div>
+            <div className="grid grid-cols-3 gap-2 mb-2">
+              <input placeholder="酒店名称" value={customForm.name}
+                onChange={e => setCustomForm({...customForm, name:e.target.value})}
+                className="px-2 py-1.5 border rounded text-sm outline-none focus:border-sky-500" />
+              <input placeholder="每晚价格(数字)" type="number" value={customForm.price}
+                onChange={e => setCustomForm({...customForm, price:e.target.value})}
+                className="px-2 py-1.5 border rounded text-sm outline-none focus:border-sky-500" />
+              <input placeholder="位置(如: 西湖边)" value={customForm.loc}
+                onChange={e => setCustomForm({...customForm, loc:e.target.value})}
+                className="px-2 py-1.5 border rounded text-sm outline-none focus:border-sky-500" />
+            </div>
+            <button onClick={() => {
+              if (customForm.name && customForm.price) {
+                setCustomHotel({name:customForm.name, price:Number(customForm.price), loc:customForm.loc||'自定义位置', perks:'自定义酒店'});
+                setShowCustomForm(false);
+                setCustomForm({name:'',price:'',loc:''});
+              }
+            }} className="px-3 py-1 bg-sky-500 text-white text-xs rounded-lg hover:bg-sky-600">确认添加</button>
+            <button onClick={() => setShowCustomForm(false)} className="px-3 py-1 text-xs text-slate-500 ml-2">取消</button>
+          </div>
+        )}
+
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
-            <div className="text-xs text-amber-700 mb-0.5">🏨 行程主推住宿（{tierLabel}）</div>
-            <div className="font-bold">{recommendedHotel.name}</div>
-            <div className="text-xs text-slate-600 mt-0.5">📍 {recommendedHotel.loc} · {recommendedHotel.perks}</div>
+            <div className="text-xs text-amber-700 mb-0.5">{customHotel ? '自定义住宿' : `行程主推住宿(${tierLabel})`}</div>
+            <div className="font-bold">{activeHotel.name}</div>
+            <div className="text-xs text-slate-600 mt-0.5">{activeHotel.loc}{activeHotel.perks ? ` · ${activeHotel.perks}` : ''}</div>
           </div>
           <div className="text-right">
-            <div className="text-rose-500 font-bold">¥{fmt(recommendedHotel.price)} <span className="text-xs text-slate-400">/晚</span></div>
+            <div className="text-rose-500 font-bold">¥{fmt(activeHotel.price)} <span className="text-xs text-slate-400">/晚</span></div>
             <div className="text-xs text-slate-500">{hotelTotalNights} 晚 ≈ ¥{fmt(hotelTotalCost)}</div>
           </div>
         </div>
+
+        {!customHotel && (
+          <div className="mt-3 pt-2 border-t border-amber-200 no-print">
+            <div className="text-[11px] text-slate-500 mb-1.5">同档其他选择:</div>
+            <div className="flex flex-wrap gap-1.5">
+              {cityData.accommodation[tier].map((h, i) => (
+                <button key={i} onClick={() => setCustomHotel(h)}
+                  className={`px-2 py-1 text-[11px] rounded-full border transition ${activeHotel.name===h.name ? 'bg-amber-200 border-amber-400 font-bold' : 'bg-white border-slate-200 hover:border-amber-300 text-slate-600'}`}>
+                  {h.name} ¥{h.price}/晚
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 每日时间线 */}
       <div className="space-y-5">
-        {dayBlocks.map(({ day, items, dayDist, dayMin, dayCost, dayTicket }) => (
+        {dayBlocks.map(({ day, items, dayDist, dayMin, dayCost, dayTicket }, dayIdx) => (
           <div key={day.day} className="print-day border border-slate-200 rounded-xl p-4">
             <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
               <div className="flex items-center gap-2">
                 <div className="w-9 h-9 rounded-full bg-gradient-to-br from-sky-500 to-indigo-500 text-white font-bold flex items-center justify-center">D{day.day}</div>
                 <div>
                   <div className="font-bold text-base">第 {day.day} 天 · {day.theme}</div>
-                  <div className="text-xs text-slate-500">⏱ 全天 {day.hours}h · 🚏 移动 {dayDist.toFixed(1)}km / {dayMin}min · 💸 区间费用 ¥{dayCost} · 🎫 门票 ¥{dayTicket}</div>
+                  <div className="text-xs text-slate-500">全天 {day.hours}h · 移动 {dayDist.toFixed(1)}km / {dayMin}min · 区间费用 ¥{dayCost} · 门票 ¥{dayTicket}</div>
                 </div>
               </div>
             </div>
@@ -1152,30 +1283,62 @@ function EnhancedItinerary({ city, route, prefs, hotelTier, printable }) {
             <div className="space-y-1.5">
               {items.map((it, i) => {
                 if (it.kind === 'spot') {
+                  const spotGlobalIdx = day.list.indexOf(it.name);
+                  const isSwapping = swapSpotFor && swapSpotFor.dayIdx === dayIdx && swapSpotFor.spotIdx === spotGlobalIdx;
+                  const altSpots = allSpots.filter(s => !routeSpotNames.has(s.name));
                   return (
-                    <div key={i} className="flex items-start gap-3 py-1.5">
-                      <div className="w-7 h-7 rounded-full bg-sky-100 text-sky-700 font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">{Math.floor(i/2)+1}</div>
-                      <div className="flex-1">
-                        <div className="font-semibold">{it.name}</div>
-                        {it.spot && (
-                          <div className="text-xs text-slate-500 mt-0.5">
-                            {it.spot.duration ? `游玩约 ${it.spot.duration}h · ` : ''}
-                            门票 ¥{it.ticket}
-                            {it.spot.tip ? ` · 💡 ${it.spot.tip}` : ''}
+                    <div key={i}>
+                      <div className="flex items-start gap-3 py-1.5 group">
+                        <div className="w-7 h-7 rounded-full bg-sky-100 text-sky-700 font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">{Math.floor(i/2)+1}</div>
+                        <div className="flex-1">
+                          <div className="font-semibold flex items-center gap-2 flex-wrap">
+                            {it.name}
+                            {onRouteChange && (
+                              <button onClick={() => setSwapSpotFor(isSwapping ? null : {dayIdx, spotIdx:spotGlobalIdx})}
+                                className="no-print text-[11px] px-1.5 py-0.5 rounded border border-slate-200 text-slate-400 hover:text-sky-600 hover:border-sky-400 transition opacity-0 group-hover:opacity-100">
+                                换
+                              </button>
+                            )}
                           </div>
-                        )}
+                          {it.spot && (
+                            <div className="text-xs text-slate-500 mt-0.5">
+                              {it.spot.duration ? `游玩约 ${it.spot.duration}h · ` : ''}
+                              门票 ¥{it.ticket}
+                              {it.spot.tip ? ` · ${it.spot.tip}` : ''}
+                            </div>
+                          )}
+                        </div>
                       </div>
+                      {isSwapping && (
+                        <div className="ml-10 mb-2 p-2 bg-sky-50 border border-sky-200 rounded-lg fade-in no-print">
+                          <div className="text-xs text-sky-700 mb-1.5 font-medium">选择替换景点:</div>
+                          <div className="max-h-40 overflow-y-auto space-y-1">
+                            {altSpots.length > 0 ? altSpots.map(s => (
+                              <button key={s.name} onClick={() => handleSwapSpot(dayIdx, spotGlobalIdx, s.name)}
+                                className="w-full text-left px-2 py-1.5 text-xs rounded hover:bg-sky-100 transition flex items-center justify-between">
+                                <span>
+                                  <span className="font-medium">{s.name}</span>
+                                  <span className="text-slate-500 ml-1">
+                                    {s.ticket > 0 ? `¥${s.ticket}` : '免费'} · {s.duration}h
+                                  </span>
+                                </span>
+                                <span className="text-sky-500">选择</span>
+                              </button>
+                            )) : <div className="text-xs text-slate-400">暂无可替换景点（所有景点已在行程中）</div>}
+                          </div>
+                          <button onClick={() => setSwapSpotFor(null)} className="text-xs text-slate-400 mt-1 hover:text-slate-600">取消</button>
+                        </div>
+                      )}
                     </div>
                   );
                 } else {
-                  // 区间交通段
                   const { km, seg } = it;
                   return (
                     <div key={i} className="flex items-start gap-3 ml-3 my-1 pl-4 border-l-2 border-dashed border-slate-300">
                       <div className="text-base flex-shrink-0">{seg.icon}</div>
                       <div className="flex-1 text-xs">
                         <span className="font-semibold text-slate-700">{seg.mode}</span>
-                        <span className="text-slate-500"> · {seg.detail} · ⏱ {seg.time}min · 💸 ¥{seg.cost}</span>
+                        <span className="text-slate-500"> · {seg.detail} · {seg.time}min · ¥{seg.cost}</span>
                         {seg.tip && <span className="text-rose-500 ml-2">{seg.tip}</span>}
                       </div>
                     </div>
@@ -1184,12 +1347,10 @@ function EnhancedItinerary({ city, route, prefs, hotelTier, printable }) {
               })}
             </div>
 
-            {/* 当日末尾住宿（最后一天不显示） */}
             {day.day < route.days && (
               <div className="mt-3 ml-3 pl-4 border-l-2 border-dashed border-amber-300">
                 <div className="flex items-center gap-2 text-xs text-amber-700">
-                  <span className="text-base">🏨</span>
-                  <span>当晚入住 <b>{recommendedHotel.name}</b> · 📍{recommendedHotel.loc} · ¥{fmt(recommendedHotel.price)}/晚</span>
+                  <span>当晚入住 <b>{activeHotel.name}</b> · {activeHotel.loc} · ¥{fmt(activeHotel.price)}/晚</span>
                 </div>
               </div>
             )}
@@ -1206,7 +1367,7 @@ function EnhancedItinerary({ city, route, prefs, hotelTier, printable }) {
       </div>
 
       <div className="mt-3 text-[11px] text-slate-400 text-center">
-        ℹ️ 区间耗时/费用基于景点直线距离与 {TRANSPORT_LABEL[prefs.transport]} 模式估算，实际以高德地图实时为准
+        区间耗时/费用基于景点直线距离与 {TRANSPORT_LABEL[prefs.transport]} 模式估算，实际以高德地图实时为准
       </div>
     </div>
   );
@@ -1354,11 +1515,14 @@ function FinalPlanFlipbook({ city, prefs, route, startPoint, onRestart }) {
 }
 
 /* ============ 完整方案展示页 ============ */
-function FullPlan({ city, prefs, routeKey, startPoint, onRestart }) {
-  const route = { ...window.CITY_DATABASE[city].routes[routeKey], routeKey };
-  const [showFlipbook, setShowFlipbook] = useState(false);
+function FullPlan({ city, prefs, routeKey, startPoint, onRestart, onPrefsChange }) {
+  const [route, setRoute] = useState(() => ({ ...window.CITY_DATABASE[city].routes[routeKey], routeKey }));
+  const [editingParams, setEditingParams] = useState(false);
 
-  if (showFlipbook) {
+  const handleRouteChange = (newRoute) => setRoute(newRoute);
+  const handlePrefsChange = (newPrefs) => { if (onPrefsChange) onPrefsChange(newPrefs); };
+
+  if (route._showFlipbook) {
     return <FinalPlanFlipbook city={city} prefs={prefs} route={route} startPoint={startPoint} onRestart={onRestart} />;
   }
 
@@ -1366,22 +1530,80 @@ function FullPlan({ city, prefs, routeKey, startPoint, onRestart }) {
     <div className="max-w-7xl mx-auto py-8 px-6">
       <div className="no-print bg-gradient-to-r from-sky-500 to-indigo-600 text-white rounded-2xl p-6 mb-6 flex items-center justify-between">
         <div>
-          <div className="text-sm opacity-80">已为你定制 ✨</div>
+          <div className="text-sm opacity-80">已为你定制</div>
           <h1 className="text-3xl font-bold mt-1">{route.name}</h1>
           <p className="opacity-90 mt-1">{route.tagline} · {route.days}天 · {route.spots.length}个景点{startPoint ? ` · 从${startPoint}出发` : ''}</p>
         </div>
-        <button onClick={() => setShowFlipbook(true)} className="px-6 py-3 bg-white text-sky-600 font-bold rounded-xl hover:opacity-90">
-          📖 翻页式方案 →
+        <button onClick={() => setRoute(r => ({...r, _showFlipbook: true}))} className="px-6 py-3 bg-white text-sky-600 font-bold rounded-xl hover:opacity-90">
+          翻页式方案
         </button>
       </div>
 
-      {/* 整合后的行程概要：必玩景点 + 区间耗时费用 + 当晚住宿（同时是 .print-area 打印目标） */}
+      {/* 行程概要：支持交互编辑 */}
       <EnhancedItinerary
         city={city}
         route={route}
         prefs={prefs}
         hotelTier={prefs.budget < 3000 ? 'budget' : prefs.budget < 6000 ? 'mid' : 'luxury'}
+        onRouteChange={handleRouteChange}
+        onPrefsChange={handlePrefsChange}
       />
+
+      {/* 快捷调整面板 */}
+      <div className="no-print bg-white rounded-2xl p-4 mb-6 glow-card">
+        <button onClick={() => setEditingParams(!editingParams)} className="w-full flex items-center justify-between text-left">
+          <div className="font-bold text-base">想调整行程？在这里直接改</div>
+          <span className="text-sky-600 text-sm">{editingParams ? '收起' : '展开调整面板'}</span>
+        </button>
+        {editingParams && (
+          <div className="mt-4 pt-4 border-t border-slate-200 fade-in">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <div>
+                <label className="text-xs text-slate-500 block mb-1">天数</label>
+                <input type="number" min="1" max="15" value={prefs.days || route.days}
+                  onChange={e => {
+                    const nd = Math.max(1, Math.min(15, parseInt(e.target.value)||1));
+                    let dp = route.dayPlan.slice(0, nd);
+                    while (dp.length < nd) {
+                      const last = dp[dp.length-1];
+                      dp.push({day:dp.length+1, theme:'自由活动', list:last?last.list.slice(0,1):[], hours:4});
+                    }
+                    handleRouteChange({...route, days:nd, dayPlan:dp, spots:dp.flatMap(d=>d.list)});
+                  }}
+                  className="w-full px-3 py-2 border rounded-lg text-sm focus:border-sky-500 outline-none" />
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 block mb-1">同行</label>
+                <select value={prefs.companions} onChange={e => handlePrefsChange({...prefs, companions:e.target.value})}
+                  className="w-full px-3 py-2 border rounded-lg text-sm focus:border-sky-500 outline-none bg-white">
+                  {Object.entries(COMPANION_LABEL).map(([k,v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 block mb-1">出行方式</label>
+                <select value={prefs.transport} onChange={e => handlePrefsChange({...prefs, transport:e.target.value})}
+                  className="w-full px-3 py-2 border rounded-lg text-sm focus:border-sky-500 outline-none bg-white">
+                  {Object.entries(TRANSPORT_LABEL).map(([k,v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 block mb-1">偏好</label>
+                <select value={prefs.preference} onChange={e => handlePrefsChange({...prefs, preference:e.target.value})}
+                  className="w-full px-3 py-2 border rounded-lg text-sm focus:border-sky-500 outline-none bg-white">
+                  {Object.entries(PREF_LABEL).map(([k,v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 block mb-1">预算</label>
+                <input type="number" min="500" step="500" value={prefs.budget}
+                  onChange={e => handlePrefsChange({...prefs, budget:parseInt(e.target.value)||prefs.budget})}
+                  className="w-full px-3 py-2 border rounded-lg text-sm focus:border-sky-500 outline-none" />
+              </div>
+            </div>
+            <div className="text-xs text-slate-400 mt-3">修改后下方行程概要自动更新。也可直接在行程概要中点击景点进行替换。</div>
+          </div>
+        )}
+      </div>
 
       <div className="no-print">
         <AttractionsGuide city={city} />
@@ -1391,11 +1613,11 @@ function FullPlan({ city, prefs, routeKey, startPoint, onRestart }) {
       </div>
 
       <div className="no-print text-center py-8">
-        <button onClick={() => setShowFlipbook(true)} className="px-8 py-4 bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold text-lg rounded-2xl hover:opacity-90 mr-3">
-          📖 查看翻页版完整方案
+        <button onClick={() => setRoute(r => ({...r, _showFlipbook: true}))} className="px-8 py-4 bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold text-lg rounded-2xl hover:opacity-90 mr-3">
+          查看翻页版完整方案
         </button>
         <button onClick={onRestart} className="px-8 py-4 bg-white border-2 border-slate-200 text-slate-700 font-bold text-lg rounded-2xl hover:bg-slate-50">
-          🔄 重新规划
+          重新规划
         </button>
       </div>
     </div>
@@ -1784,7 +2006,7 @@ function App() {
           onSelect={(rk) => { setRouteKey(rk); setStage('plan'); }} />
       )}
       {stage === 'plan' && (
-        <FullPlan city={city} prefs={prefs} routeKey={routeKey} startPoint={startPoint} onRestart={reset} />
+        <FullPlan city={city} prefs={prefs} routeKey={routeKey} startPoint={startPoint} onRestart={reset} onPrefsChange={(newPrefs) => setPrefs(newPrefs)} />
       )}
       {stage === 'province-days' && province && (
         <ProvinceDaysPicker province={province} startPoint={startPoint} onSelect={(d) => { setDrivingDays(d); setStage('province-plan'); }} />
